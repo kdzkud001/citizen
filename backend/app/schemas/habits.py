@@ -23,5 +23,13 @@ class HabitOut(BaseModel):
     active: bool
 
 
+class HabitWithCompletionOut(HabitOut):
+    """HabitOut plus whether it was completed on the date the caller asked
+    about -- only returned by the list endpoint's ?for_date= query, since
+    create/update have no such date context."""
+
+    completed_on_date: bool
+
+
 class HabitLogRequest(BaseModel):
     completed_on: date

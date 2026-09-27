@@ -3,7 +3,7 @@ from __future__ import annotations
 import uuid
 from datetime import date, timedelta
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
@@ -12,7 +12,13 @@ from app.auth import get_current_profile
 from app.db import get_db
 from app.models.habit import Habit, HabitLog
 from app.models.profile import Profile
-from app.schemas.habits import HabitCreate, HabitLogRequest, HabitOut, HabitUpdate
+from app.schemas.habits import (
+    HabitCreate,
+    HabitLogRequest,
+    HabitOut,
+    HabitUpdate,
+    HabitWithCompletionOut,
+)
 from app.services.scoring import recompute_user_scores, today_utc
 
 router = APIRouter(prefix="/habits", tags=["habits"])
@@ -38,12 +44,33 @@ def create_habit(
     return habit
 
 
-@router.get("", response_model=list[HabitOut])
+@router.get("", response_model=list[HabitWithCompletionOut])
 def list_habits(
+    for_date: date | None = Query(default=None),
     profile: Profile = Depends(get_current_profile),
     db: Session = Depends(get_db),
-) -> list[Habit]:
-    return list(db.scalars(select(Habit).where(Habit.user_id == profile.id)))
+) -> list[HabitWithCompletionOut]:
+    """Only today or yesterday's completion state can be asked for (the same
+    window the backend allows logging against)."""
+    target_date = for_date or today_utc()
+    today = today_utc()
+    if target_date not in (today, today - timedelta(days=1)):
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, "for_date must be today or yesterday")
+
+    habits = list(db.scalars(select(Habit).where(Habit.user_id == profile.id)))
+    completed_ids = set(
+        db.scalars(
+            select(HabitLog.habit_id).where(
+                HabitLog.user_id == profile.id, HabitLog.completed_on == target_date
+            )
+        )
+    )
+    return [
+        HabitWithCompletionOut(
+            id=h.id, name=h.name, active=h.active, completed_on_date=h.id in completed_ids
+        )
+        for h in habits
+    ]
 
 
 @router.patch("/{habit_id}", response_model=HabitOut)

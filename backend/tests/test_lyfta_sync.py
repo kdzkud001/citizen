@@ -88,6 +88,23 @@ def test_connect_accepts_valid_key(client, auth_headers, mock_lyfta):
     assert resp.status_code == 204
 
 
+def test_lyfta_status_before_and_after_connect(client, auth_headers, mock_lyfta):
+    before = client.get("/me/lyfta", headers=auth_headers).json()
+    assert before == {"connected": False, "last_synced_at": None, "last_sync_status": None}
+
+    mock_lyfta([])
+    client.post("/me/lyfta", json={"api_key": "valid-key"}, headers=auth_headers)
+    after_connect = client.get("/me/lyfta", headers=auth_headers).json()
+    assert after_connect["connected"] is True
+    assert after_connect["last_synced_at"] is None  # not synced yet
+
+    client.post("/me/lyfta/sync", headers=auth_headers)
+    after_sync = client.get("/me/lyfta", headers=auth_headers).json()
+    assert after_sync["connected"] is True
+    assert after_sync["last_synced_at"] is not None
+    assert after_sync["last_sync_status"] == "ok"
+
+
 def test_sync_upserts_without_duplicates(client, auth_headers, mock_lyfta, db_session, user_id):
     mock_lyfta([RAW_WORKOUT])
     connect = client.post("/me/lyfta", json={"api_key": "valid-key"}, headers=auth_headers)

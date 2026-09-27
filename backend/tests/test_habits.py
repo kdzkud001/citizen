@@ -7,6 +7,33 @@ def _create_habit(client, headers, name="Meditate"):
     return resp.json()["id"]
 
 
+def test_list_habits_reflects_completion_state(client, auth_headers):
+    habit_id = _create_habit(client, auth_headers)
+
+    before = client.get("/habits", headers=auth_headers).json()
+    assert before[0]["completed_on_date"] is False
+
+    client.post(
+        f"/habits/{habit_id}/completions",
+        json={"completed_on": date.today().isoformat()},
+        headers=auth_headers,
+    )
+
+    after = client.get("/habits", headers=auth_headers).json()
+    assert after[0]["completed_on_date"] is True
+
+    yesterday = (date.today() - timedelta(days=1)).isoformat()
+    for_yesterday = client.get(f"/habits?for_date={yesterday}", headers=auth_headers).json()
+    assert for_yesterday[0]["completed_on_date"] is False
+
+
+def test_list_habits_rejects_dates_beyond_yesterday(client, auth_headers):
+    _create_habit(client, auth_headers)
+    two_days_ago = (date.today() - timedelta(days=2)).isoformat()
+    resp = client.get(f"/habits?for_date={two_days_ago}", headers=auth_headers)
+    assert resp.status_code == 400
+
+
 def test_log_completion_today_scores_points(client, auth_headers):
     habit_id = _create_habit(client, auth_headers)
     resp = client.post(

@@ -115,16 +115,20 @@ parameter) rather than a separate mocking library.
 
 - `GET /health` — no auth
 - `GET /me`, `PATCH /me` — profile, including `weekly_session_target`
-- `POST /me/lyfta`, `DELETE /me/lyfta`, `POST /me/lyfta/sync`
+- `GET /me/lyfta` — connection status (`connected`, `last_synced_at`,
+  `last_sync_status`); `POST /me/lyfta`, `DELETE /me/lyfta`, `POST /me/lyfta/sync`
 - `GET /me/score` — today's points, rolling score, class, points to next
   class, and the last 28 days of daily scores
 - `GET /me/workouts` — recent scored sessions with their per-set breakdown
-- `POST /habits`, `GET /habits`, `PATCH /habits/{id}`
+- `POST /habits`, `PATCH /habits/{id}`
+- `GET /habits?for_date=YYYY-MM-DD` — each habit plus `completed_on_date`
+  for that date (today or yesterday only, defaults to today)
 - `POST /habits/{id}/completions`, `DELETE /habits/{id}/completions/{date}`
   (only today or yesterday — no backfill)
 - `POST /clans`, `POST /clans/join`, `POST /clans/leave`,
-  `POST /clans/regenerate-code` (owner only), `GET /clans/me` (leaderboard:
-  display name, rolling score, class only — never raw workouts or Lyfta info)
+  `POST /clans/regenerate-code` (owner only), `GET /clans/me` — each returns
+  `is_owner` (relative to the caller) plus a leaderboard of `members`
+  (display name, rolling score, class only — never raw workouts or Lyfta info)
 
 ## Assumptions
 

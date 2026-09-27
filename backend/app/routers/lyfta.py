@@ -7,11 +7,25 @@ from citizenship_score.lyfta_client import LyftaApiError, LyftaAuthError
 
 from app.auth import get_current_profile
 from app.db import get_db
+from app.models.lyfta_connection import LyftaConnection
 from app.models.profile import Profile
-from app.schemas.lyfta import ConnectLyftaRequest, SyncResult
+from app.schemas.lyfta import ConnectLyftaRequest, LyftaStatusOut, SyncResult
 from app.services.lyfta_sync import LyftaValidationError, connect_lyfta, disconnect_lyfta, sync_user
 
 router = APIRouter(prefix="/me/lyfta", tags=["lyfta"])
+
+
+@router.get("", response_model=LyftaStatusOut)
+def status_(
+    profile: Profile = Depends(get_current_profile),
+    db: Session = Depends(get_db),
+) -> LyftaStatusOut:
+    conn = db.get(LyftaConnection, profile.id)
+    if conn is None:
+        return LyftaStatusOut(connected=False)
+    return LyftaStatusOut(
+        connected=True, last_synced_at=conn.last_synced_at, last_sync_status=conn.last_sync_status
+    )
 
 
 @router.post("", status_code=status.HTTP_204_NO_CONTENT)

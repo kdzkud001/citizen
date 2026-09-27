@@ -3,8 +3,20 @@ def test_create_clan_auto_joins_owner(client, auth_headers):
     assert resp.status_code == 201
     body = resp.json()
     assert body["name"] == "Iron Legion"
+    assert body["is_owner"] is True
     assert len(body["members"]) == 1
     assert set(body["members"][0].keys()) == {"display_name", "rolling_score", "class_name"}
+
+
+def test_is_owner_false_for_non_owner_member(client, auth_headers, other_auth_headers):
+    created = client.post("/clans", json={"name": "Iron Legion"}, headers=auth_headers).json()
+    joined = client.post(
+        "/clans/join", json={"invite_code": created["invite_code"]}, headers=other_auth_headers
+    ).json()
+    assert joined["is_owner"] is False
+
+    owner_view = client.get("/clans/me", headers=auth_headers).json()
+    assert owner_view["is_owner"] is True
 
 
 def test_join_by_invite_code(client, auth_headers, other_auth_headers):
@@ -61,4 +73,12 @@ def test_leaderboard_never_exposes_raw_workout_or_lyfta_fields(client, auth_head
     body = client.get("/clans/me", headers=auth_headers).json()
     for member in body["members"]:
         assert set(member.keys()) == {"display_name", "rolling_score", "class_name"}
-    assert set(body.keys()) == {"id", "name", "invite_code", "clan_score", "participation", "members"}
+    assert set(body.keys()) == {
+        "id",
+        "name",
+        "invite_code",
+        "clan_score",
+        "participation",
+        "is_owner",
+        "members",
+    }

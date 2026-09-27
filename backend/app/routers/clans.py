@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import secrets
 import string
+import uuid
 from datetime import timedelta
 
 from fastapi import APIRouter, Depends, HTTPException, status
@@ -33,7 +34,7 @@ def _new_invite_code() -> str:
     return "".join(secrets.choice(_INVITE_CODE_ALPHABET) for _ in range(_INVITE_CODE_LENGTH))
 
 
-def _build_clan_out(db: Session, clan: Clan) -> ClanOut:
+def _build_clan_out(db: Session, clan: Clan, viewer_id: uuid.UUID) -> ClanOut:
     members = list(db.scalars(select(ClanMember).where(ClanMember.clan_id == clan.id)))
     member_ids = [m.user_id for m in members]
     profiles = {p.id: p for p in db.scalars(select(Profile).where(Profile.id.in_(member_ids)))}
@@ -67,6 +68,7 @@ def _build_clan_out(db: Session, clan: Clan) -> ClanOut:
         invite_code=clan.invite_code,
         clan_score=clan_score(phase_members, today, DEFAULT_CONFIG),
         participation=participation_factor(phase_members, today, DEFAULT_CONFIG),
+        is_owner=clan.owner_id == viewer_id,
         members=member_outs,
     )
 
@@ -97,7 +99,7 @@ def create_clan(
         raise HTTPException(status.HTTP_409_CONFLICT, "You're already in a clan") from exc
 
     db.refresh(clan)
-    return _build_clan_out(db, clan)
+    return _build_clan_out(db, clan, profile.id)
 
 
 @router.post("/join", response_model=ClanOut)
@@ -117,7 +119,7 @@ def join_clan(
         db.rollback()
         raise HTTPException(status.HTTP_409_CONFLICT, "You're already in a clan") from exc
 
-    return _build_clan_out(db, clan)
+    return _build_clan_out(db, clan, profile.id)
 
 
 @router.post("/leave", status_code=status.HTTP_204_NO_CONTENT)
@@ -154,7 +156,7 @@ def regenerate_invite_code(
     else:
         raise HTTPException(status.HTTP_500_INTERNAL_SERVER_ERROR, "Could not generate a unique invite code")
 
-    return _build_clan_out(db, clan)
+    return _build_clan_out(db, clan, profile.id)
 
 
 @router.get("/me", response_model=ClanOut)
@@ -166,4 +168,4 @@ def get_my_clan(
     if membership is None:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Not in a clan")
     clan = db.get(Clan, membership.clan_id)
-    return _build_clan_out(db, clan)
+    return _build_clan_out(db, clan, profile.id)

@@ -25,4 +25,5 @@ class ClanOut(BaseModel):
     invite_code: str
     clan_score: float
     participation: float
+    is_owner: bool
     members: list[ClanMemberOut]
