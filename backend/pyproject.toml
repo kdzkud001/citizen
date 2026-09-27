@@ -1,0 +1,36 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "citizenship-backend"
+version = "0.1.0"
+description = "Phase 1 FastAPI backend for the citizenship habit/workout tracker"
+requires-python = ">=3.11"
+dependencies = [
+    # citizenship-score itself is not listed here: a relative `file://../`
+    # requirement is unreliable across pip versions/platforms (breaks on
+    # Windows in particular). Install it explicitly first -- see README:
+    #   pip install -e ../
+    #   pip install -e ".[dev]"
+    "fastapi>=0.115",
+    "uvicorn[standard]>=0.30",
+    "pydantic>=2.6",
+    "pydantic-settings>=2.4",
+    "sqlalchemy>=2.0",
+    "psycopg[binary]>=3.1",
+    "alembic>=1.13",
+    "pyjwt[crypto]>=2.8",
+    "cryptography>=42",
+    "apscheduler>=3.10",
+    "python-dotenv>=1.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.0",
+]
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["app*", "scripts*"]

@@ -1,0 +1,11 @@
+services:
+  test-postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: citizenship
+      POSTGRES_PASSWORD: citizenship
+      POSTGRES_DB: citizenship_test
+    ports:
+      - "55432:5432"
+    tmpfs:
+      - /var/lib/postgresql/data  # throwaway: tests truncate/recreate freely, nothing here needs to survive a restart
