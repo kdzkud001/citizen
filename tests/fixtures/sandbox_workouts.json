@@ -1,0 +1,95 @@
+{
+    "status": true,
+    "sandbox": true,
+    "message": "Sample data for agents and integrators. Generate a free API key at /community/api or connect with OAuth scope training:read for live user data.",
+    "count": 2,
+    "total_records": 2,
+    "total_pages": 1,
+    "current_page": 1,
+    "limit": 10,
+    "workouts": [
+        {
+            "id": 1001,
+            "title": "Upper Strength",
+            "body_weight": 82,
+            "workout_perform_date": "2026-08-20T17:05:00.000Z",
+            "total_volume": 12400,
+            "totalLiftedWeight": 12400,
+            "user": {
+                "username": "sandbox-lifter"
+            },
+            "exercises": [
+                {
+                    "exercise_id": 2,
+                    "excercise_name": "Bench Press",
+                    "exercise_type": "weight_reps",
+                    "exercise_image": "https://lyfta.app/images/exercises/00251101.png",
+                    "exercise_rest_time": 180,
+                    "sets": [
+                        {
+                            "id": "s1",
+                            "weight": "80",
+                            "reps": "5",
+                            "rir": "2",
+                            "duration": "",
+                            "distance": "",
+                            "set_type_id": "1",
+                            "is_completed": true,
+                            "record_type": "",
+                            "record_level": "",
+                            "record_value": ""
+                        },
+                        {
+                            "id": "s2",
+                            "weight": "90",
+                            "reps": "3",
+                            "rir": "1",
+                            "duration": "",
+                            "distance": "",
+                            "set_type_id": "1",
+                            "is_completed": true,
+                            "record_type": "",
+                            "record_level": "",
+                            "record_value": ""
+                        }
+                    ]
+                }
+            ]
+        },
+        {
+            "id": 1002,
+            "title": "Lower Strength",
+            "body_weight": 82,
+            "workout_perform_date": "2026-08-22T16:30:00.000Z",
+            "total_volume": 15800,
+            "totalLiftedWeight": 15800,
+            "user": {
+                "username": "sandbox-lifter"
+            },
+            "exercises": [
+                {
+                    "exercise_id": 18,
+                    "excercise_name": "Full Squat",
+                    "exercise_type": "weight_reps",
+                    "exercise_image": "https://lyfta.app/images/exercises/00431101.png",
+                    "exercise_rest_time": 180,
+                    "sets": [
+                        {
+                            "id": "s3",
+                            "weight": "120",
+                            "reps": "5",
+                            "rir": "2",
+                            "duration": "",
+                            "distance": "",
+                            "set_type_id": "1",
+                            "is_completed": true,
+                            "record_type": "",
+                            "record_level": "",
+                            "record_value": ""
+                        }
+                    ]
+                }
+            ]
+        }
+    ]
+}
