@@ -28,7 +28,7 @@ os.environ.setdefault(
     ),
 )
 os.environ.setdefault("SUPABASE_URL", "https://test-project.supabase.co")
-os.environ.setdefault("SUPABASE_JWT_SECRET", "test-jwt-secret-not-real")
+os.environ.setdefault("SUPABASE_JWT_SECRET", "test-jwt-secret-not-real-but-long-enough-for-hs256")
 os.environ.setdefault("CREDENTIAL_ENCRYPTION_KEY", Fernet.generate_key().decode())
 
 from app import db as db_module  # noqa: E402
@@ -51,14 +51,12 @@ def db_session(engine):
     request `db_session` (or `client`, which depends on it), not by
     DB-free pure-function tests.
 
-    Also stubs a minimal `auth.users` table: `profiles.id` has a real FK to
-    Supabase's `auth.users`, which doesn't exist on the plain docker-compose
-    Postgres tests run against, so a bare-bones stand-in is created here
-    (schema/table creation is idempotent; the `user_id`/`other_user_id`
-    fixtures insert the actual per-test rows into it)."""
+    `Base.metadata` includes a bare-bones stand-in for Supabase's own
+    `auth.users` (see app/db.py:auth_users_table), so create_all/drop_all
+    below also create/drop it here -- schemas themselves aren't created by
+    create_all, so both are created explicitly first."""
     with engine.begin() as conn:
         conn.execute(text("CREATE SCHEMA IF NOT EXISTS auth"))
-        conn.execute(text("CREATE TABLE IF NOT EXISTS auth.users (id uuid PRIMARY KEY, email text)"))
         conn.execute(text(f"CREATE SCHEMA IF NOT EXISTS {APP_SCHEMA}"))
 
     Base.metadata.drop_all(engine)
@@ -91,10 +89,7 @@ def token_factory():
 
 
 def _insert_auth_user(db_session, uid: uuid.UUID) -> None:
-    db_session.execute(
-        text("INSERT INTO auth.users (id, email) VALUES (:id, :email)"),
-        {"id": uid, "email": f"{uid}@example.com"},
-    )
+    db_session.execute(text("INSERT INTO auth.users (id) VALUES (:id)"), {"id": uid})
     db_session.commit()
 
 

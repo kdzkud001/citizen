@@ -7,6 +7,7 @@ hitting the real endpoint.
 from __future__ import annotations
 
 import functools
+from datetime import date
 
 import httpx
 import pytest
@@ -105,14 +106,19 @@ def test_sync_upserts_without_duplicates(client, auth_headers, mock_lyfta, db_se
 
 
 def test_sync_recomputes_scores(client, auth_headers, mock_lyfta):
-    mock_lyfta([RAW_WORKOUT])
+    # /me/score's history is windowed to the trailing 28 days from today, so
+    # the workout has to be dated within that window regardless of when this
+    # test runs -- a fixed historical date would silently fall outside it.
+    today = date.today().isoformat()
+    workout_today = {**RAW_WORKOUT, "workout_perform_date": today}
+    mock_lyfta([workout_today])
     client.post("/me/lyfta", json={"api_key": "valid-key"}, headers=auth_headers)
     client.post("/me/lyfta/sync", headers=auth_headers)
 
     score = client.get("/me/score", headers=auth_headers).json()
     history_dates = {row["date"]: row for row in score["history"]}
-    assert "2026-01-10" in history_dates
-    assert history_dates["2026-01-10"]["workout_points"] > 0
+    assert today in history_dates
+    assert history_dates[today]["workout_points"] > 0
 
 
 def test_disconnect_then_sync_fails(client, auth_headers, mock_lyfta):

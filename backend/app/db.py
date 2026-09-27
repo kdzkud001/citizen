@@ -9,7 +9,8 @@ from __future__ import annotations
 
 from collections.abc import Iterator
 
-from sqlalchemy import MetaData, create_engine
+from sqlalchemy import Column, MetaData, Table, create_engine
+from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import DeclarativeBase, Session, sessionmaker
 
 from app.config import get_settings
@@ -25,6 +26,23 @@ APP_SCHEMA = "app"
 
 class Base(DeclarativeBase):
     metadata = MetaData(schema=APP_SCHEMA)
+
+
+# A bare-bones stand-in for Supabase's own auth.users, registered on this
+# same MetaData purely so profiles.id's FK can resolve -- SQLAlchemy needs
+# the referenced table as a registered Table object to compute DDL
+# dependency order, even though Alembic's hand-written migration never
+# creates or touches it (Supabase provisions the real auth.users; our own
+# migration only emits a plain `REFERENCES auth.users(id)` string, which
+# Postgres resolves against the real table). Tests run against a plain
+# Postgres container with no `auth` schema at all, so `Base.metadata.create_all`
+# creates this too there, standing in for the real thing.
+auth_users_table = Table(
+    "users",
+    Base.metadata,
+    Column("id", UUID(as_uuid=True), primary_key=True),
+    schema="auth",
+)
 
 
 def make_engine(database_url: str | None = None):
