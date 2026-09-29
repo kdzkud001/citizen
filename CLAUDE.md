@@ -60,6 +60,11 @@ Users earn points from Lyfta workouts and self-tracked habits; a rolling
   in `app/types/api.ts`. The backend validates against the engine config, so
   a new category needs no DB migration. Full formulas: `README.md`; spec:
   `docs/PHASE2.md`.
+- **App look**: dark-only navy theme, tokens in `app/constants/Colors.ts`.
+  Pillar colors (`CATEGORY_THEME` in `app/constants/habits.ts`) and class
+  colors (`app/constants/classes.ts`) are validated colorblind-safe *in
+  their current order* — re-run the data-viz `validate_palette.js` against
+  the navy surfaces before changing or reordering any of them.
 - **Set-type legend** (Lyfta `set_type_id`, confirmed against real account
   data): `0`=normal, `1`=warm-up (excluded from scoring), `2`=left,
   `3`=right, `5`=drop set, `7`=partial reps.

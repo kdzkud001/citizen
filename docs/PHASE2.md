@@ -104,3 +104,37 @@ current window and the previous window of the same length.
 
 Habits-only lands 40 points into Elite rather than near the top of Noble. Thresholds are not retuned
 without sign-off.
+
+---
+
+## Redesign: mockup layout
+
+The app was restyled to follow a design mockup (dark navy "kingdom" look, glowing class card,
+pillar-colored habit rows), keeping the radar chart.
+
+*Decided:*
+- **Scope:** reskin plus the screens the current API can feed. No backend changes.
+- **Tabs:** Home, Habits, Wellness, Clan, Profile. Workouts and the class ladder are pushed screens.
+- **Classes:** the current five (Outsider → Elite), with unchanged thresholds.
+- **Name:** "Citizenship". The mockup's "LYFTA" branding isn't used; Lyfta is the third-party
+  workout source.
+
+**Screens.**
+- **Home:** greeting and avatar, a class hero card linking to the ladder, today's points, today's
+  habits with one-tap check-off, a wellness-balance card, the latest workout, and the 28-day chart.
+- **Wellness:** the radar, an overall balance figure (average of tracked pillars), balance
+  insights (strongest/lowest pillar, biggest change on the previous window) and per-pillar bars.
+- **Class ladder:** every class with its point range, the current one highlighted.
+- **Auth:** a night-sky backdrop with an original SVG castle skyline.
+
+**Colors.** Pillar colors are the data-viz dark categorical steps in wheel order (Mind blue,
+Spirit magenta, Discipline gold, Body green, Fitness orange), validated for colorblind separation
+against the navy surfaces. The mockup's blue/purple Mind/Spirit pair failed that check.
+
+**Deferred** (need backend work, artwork, or their own spec):
+- A Mon–Sun habit strip. The API only returns today/yesterday.
+- A Progress screen with 90-day/all-time totals and points by pillar. This needs an engine change.
+- A global clan leaderboard.
+- Clan chat.
+- The "virtual world" screen.
+- Workout duration/calories.
