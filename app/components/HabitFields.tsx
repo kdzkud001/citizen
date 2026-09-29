@@ -1,7 +1,8 @@
 import { Pressable, StyleSheet, Text, View } from "react-native";
 
-import { HABIT_CATEGORIES } from "@/constants/habits";
-import { useThemeColors } from "@/hooks/useThemeColors";
+import { CategoryIcon } from "@/components/CategoryIcon";
+import { Colors } from "@/constants/Colors";
+import { CATEGORY_THEME, HABIT_CATEGORIES } from "@/constants/habits";
 import type { HabitCategory } from "@/types/api";
 
 export function CategoryPicker({
@@ -11,11 +12,11 @@ export function CategoryPicker({
   value: HabitCategory;
   onChange: (category: HabitCategory) => void;
 }) {
-  const colors = useThemeColors();
   return (
     <View style={styles.chips}>
       {HABIT_CATEGORIES.map((category) => {
         const selected = category === value;
+        const color = CATEGORY_THEME[category].color;
         return (
           <Pressable
             key={category}
@@ -24,11 +25,12 @@ export function CategoryPicker({
             accessibilityState={{ selected }}
             style={[
               styles.chip,
-              { borderColor: selected ? colors.tint : colors.border },
-              selected && { backgroundColor: colors.tint },
+              { borderColor: selected ? color : Colors.border },
+              selected && { backgroundColor: `${color}33` },
             ]}
           >
-            <Text style={{ color: selected ? "#fff" : colors.text, fontSize: 13, fontWeight: "600" }}>
+            <CategoryIcon category={category} size={18} muted={!selected} />
+            <Text style={[styles.chipText, { color: selected ? Colors.text : Colors.textSecondary }]}>
               {category}
             </Text>
           </Pressable>
@@ -39,26 +41,25 @@ export function CategoryPicker({
 }
 
 export function WeeklyTargetStepper({ value, onChange }: { value: number; onChange: (target: number) => void }) {
-  const colors = useThemeColors();
   return (
     <View style={styles.stepperRow}>
-      <Text style={{ color: colors.textSecondary, flex: 1 }}>
+      <Text style={{ color: Colors.textSecondary, flex: 1 }}>
         {value === 7 ? "Every day" : `${value} day${value === 1 ? "" : "s"} a week`}
       </Text>
       <Pressable
-        style={[styles.stepperButton, { borderColor: colors.border }]}
+        style={styles.stepperButton}
         onPress={() => onChange(Math.max(1, value - 1))}
         accessibilityLabel="Fewer days per week"
       >
-        <Text style={{ color: colors.text, fontSize: 18 }}>−</Text>
+        <Text style={styles.stepperGlyph}>−</Text>
       </Pressable>
-      <Text style={{ color: colors.text, fontWeight: "700", minWidth: 16, textAlign: "center" }}>{value}</Text>
+      <Text style={styles.stepperValue}>{value}</Text>
       <Pressable
-        style={[styles.stepperButton, { borderColor: colors.border }]}
+        style={styles.stepperButton}
         onPress={() => onChange(Math.min(7, value + 1))}
         accessibilityLabel="More days per week"
       >
-        <Text style={{ color: colors.text, fontSize: 18 }}>+</Text>
+        <Text style={styles.stepperGlyph}>+</Text>
       </Pressable>
     </View>
   );
@@ -66,14 +67,27 @@ export function WeeklyTargetStepper({ value, onChange }: { value: number; onChan
 
 const styles = StyleSheet.create({
   chips: { flexDirection: "row", flexWrap: "wrap", gap: 6 },
-  chip: { borderWidth: 1, borderRadius: 999, paddingHorizontal: 12, paddingVertical: 6 },
+  chip: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    borderWidth: 1,
+    borderRadius: 999,
+    paddingLeft: 6,
+    paddingRight: 12,
+    paddingVertical: 5,
+  },
+  chipText: { fontSize: 13, fontWeight: "600" },
   stepperRow: { flexDirection: "row", alignItems: "center", gap: 12 },
   stepperButton: {
     width: 34,
     height: 34,
     borderRadius: 17,
     borderWidth: 1,
+    borderColor: Colors.borderStrong,
     alignItems: "center",
     justifyContent: "center",
   },
+  stepperGlyph: { color: Colors.text, fontSize: 18 },
+  stepperValue: { color: Colors.text, fontWeight: "700", minWidth: 16, textAlign: "center" },
 });

@@ -1,32 +1,31 @@
-// Chrome/ink tokens reused from the same validated palette as
-// constants/classes.ts (dataviz skill reference palette), so the whole
-// app reads as one consistent system.
-const tintColorLight = "#2a78d6";
-const tintColorDark = "#3987e5";
+/**
+ * The app's one theme: a dark navy "night kingdom" look. It's dark-only by
+ * design (app.json sets userInterfaceStyle "dark"), so there's no light
+ * variant to keep in sync.
+ *
+ * Data colors (classes in constants/classes.ts, pillars in
+ * constants/habits.ts) are the data-viz skill's dark-mode categorical
+ * steps, validated with validate_palette.js against `card` and
+ * `cardRaised` below -- re-run it if either surface changes.
+ */
+export const Colors = {
+  background: "#0a1120",
+  card: "#101a2e",
+  cardRaised: "#16233d",
+  border: "rgba(125,160,230,0.14)",
+  borderStrong: "rgba(125,160,230,0.28)",
 
-export default {
-  light: {
-    text: "#0b0b0b",
-    textSecondary: "#52514e",
-    textMuted: "#898781",
-    background: "#f9f9f7",
-    card: "#fcfcfb",
-    border: "rgba(11,11,11,0.10)",
-    tint: tintColorLight,
-    danger: "#d03b3b",
-    tabIconDefault: "#898781",
-    tabIconSelected: tintColorLight,
-  },
-  dark: {
-    text: "#ffffff",
-    textSecondary: "#c3c2b7",
-    textMuted: "#898781",
-    background: "#0d0d0d",
-    card: "#1a1a19",
-    border: "rgba(255,255,255,0.10)",
-    tint: tintColorDark,
-    danger: "#e66767",
-    tabIconDefault: "#898781",
-    tabIconSelected: tintColorDark,
-  },
-};
+  text: "#f3f6fc",
+  textSecondary: "#b4bfd3",
+  textMuted: "#7c89a3",
+
+  /** Primary action color (pill buttons, active tab, links). */
+  tint: "#4fb3f6",
+  /** Text/icons drawn on top of a `tint` fill. */
+  onTint: "#06101f",
+  /** Checked habit toggles. */
+  success: "#22b573",
+  danger: "#ef6b6b",
+} as const;
+
+export type ThemeColors = typeof Colors;

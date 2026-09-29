@@ -1,48 +1,21 @@
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useMutation } from "@tanstack/react-query";
 import { router, useLocalSearchParams } from "expo-router";
 import { useState } from "react";
-import {
-  ActivityIndicator,
-  Pressable,
-  ScrollView,
-  StyleSheet,
-  Text,
-  TextInput,
-  View,
-} from "react-native";
+import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
 
+import { CategoryIcon } from "@/components/CategoryIcon";
 import { CategoryPicker, WeeklyTargetStepper } from "@/components/HabitFields";
+import { HabitCheckRow, useInvalidateHabitData } from "@/components/HabitCheckRow";
+import { Card, PrimaryButton, SecondaryButton, inputStyle } from "@/components/ui";
+import { Colors } from "@/constants/Colors";
 import { DEFAULT_HABIT_CATEGORY, DEFAULT_WEEKLY_TARGET, HABIT_CATEGORIES } from "@/constants/habits";
-import { queryKeys, useHabits } from "@/hooks/queries";
-import { useThemeColors } from "@/hooks/useThemeColors";
+import { useHabits } from "@/hooks/queries";
 import { api } from "@/lib/api";
+import { todayIso, yesterdayIso } from "@/lib/dates";
 import { groupByCategory } from "@/lib/habits";
 import type { HabitCategory, HabitWithCompletionOut } from "@/types/api";
 
-function todayIso(): string {
-  return new Date().toISOString().slice(0, 10);
-}
-
-function yesterdayIso(): string {
-  const d = new Date();
-  d.setDate(d.getDate() - 1);
-  return d.toISOString().slice(0, 10);
-}
-
-/** Habit changes move scores and the wheel, so refetch all three. Habit
- * lists are invalidated by prefix so both the today and yesterday views
- * refresh. */
-function useInvalidateHabitData() {
-  const queryClient = useQueryClient();
-  return () => {
-    queryClient.invalidateQueries({ queryKey: ["habits"] });
-    queryClient.invalidateQueries({ queryKey: queryKeys.score });
-    queryClient.invalidateQueries({ queryKey: queryKeys.wheel });
-  };
-}
-
 function HabitEditor({ habit, onDone }: { habit: HabitWithCompletionOut; onDone: () => void }) {
-  const colors = useThemeColors();
   const invalidate = useInvalidateHabitData();
   const [category, setCategory] = useState<HabitCategory>(habit.category);
   const [weeklyTarget, setWeeklyTarget] = useState(habit.weekly_target);
@@ -66,83 +39,44 @@ function HabitEditor({ habit, onDone }: { habit: HabitWithCompletionOut; onDone:
       <WeeklyTargetStepper value={weeklyTarget} onChange={setWeeklyTarget} />
       <View style={styles.editorButtons}>
         <Pressable onPress={() => archive.mutate()} disabled={archive.isPending} hitSlop={8}>
-          <Text style={{ color: colors.danger }}>Archive</Text>
+          <Text style={{ color: Colors.danger }}>Archive</Text>
         </Pressable>
-        <View style={{ flexDirection: "row", gap: 16 }}>
+        <View style={{ flexDirection: "row", gap: 20 }}>
           <Pressable onPress={onDone} hitSlop={8}>
-            <Text style={{ color: colors.textSecondary }}>Cancel</Text>
+            <Text style={{ color: Colors.textSecondary }}>Cancel</Text>
           </Pressable>
           <Pressable onPress={() => save.mutate()} disabled={save.isPending} hitSlop={8}>
             {save.isPending ? (
-              <ActivityIndicator size="small" color={colors.tint} />
+              <ActivityIndicator size="small" color={Colors.tint} />
             ) : (
-              <Text style={{ color: colors.tint, fontWeight: "600" }}>Save</Text>
+              <Text style={{ color: Colors.tint, fontWeight: "700" }}>Save</Text>
             )}
           </Pressable>
         </View>
       </View>
+      {(save.isError || archive.isError) && <Text style={{ color: Colors.danger }}>Couldn&apos;t save changes.</Text>}
     </View>
   );
 }
 
-function HabitRow({ habit, forDate }: { habit: HabitWithCompletionOut; forDate: string }) {
-  const colors = useThemeColors();
-  const invalidate = useInvalidateHabitData();
+function EditableHabitRow({ habit, forDate }: { habit: HabitWithCompletionOut; forDate: string }) {
   const [editing, setEditing] = useState(false);
-
-  const toggle = useMutation({
-    mutationFn: () =>
-      habit.completed_on_date
-        ? api.deleteHabitCompletion(habit.id, forDate)
-        : api.logHabitCompletion(habit.id, { completed_on: forDate }),
-    onSuccess: invalidate,
-  });
-
   return (
-    <View style={[styles.habitRow, { backgroundColor: colors.card, borderColor: colors.border }]}>
-      <View style={styles.habitMain}>
-        <Pressable
-          style={styles.checkboxRow}
-          onPress={() => toggle.mutate()}
-          disabled={toggle.isPending}
-          accessibilityRole="checkbox"
-          accessibilityState={{ checked: habit.completed_on_date }}
-        >
-          <View
-            style={[
-              styles.checkbox,
-              { borderColor: colors.tint },
-              habit.completed_on_date && { backgroundColor: colors.tint },
-            ]}
-          >
-            {toggle.isPending ? (
-              <ActivityIndicator size="small" color={habit.completed_on_date ? "#fff" : colors.tint} />
-            ) : (
-              habit.completed_on_date && <Text style={styles.checkmark}>✓</Text>
-            )}
-          </View>
-          <View style={{ flexShrink: 1 }}>
-            <Text
-              style={[styles.habitName, { color: colors.text }, habit.completed_on_date && styles.habitNameDone]}
-            >
-              {habit.name}
-            </Text>
-            <Text style={{ color: colors.textMuted, fontSize: 12 }}>
-              {habit.weekly_target === 7 ? "Every day" : `${habit.weekly_target}× a week`}
-            </Text>
-          </View>
+    <HabitCheckRow
+      habit={habit}
+      forDate={forDate}
+      accessory={
+        <Pressable onPress={() => setEditing((e) => !e)} hitSlop={8} accessibilityLabel={`Edit ${habit.name}`}>
+          <Text style={styles.editLink}>{editing ? "Close" : "Edit"}</Text>
         </Pressable>
-        <Pressable onPress={() => setEditing((e) => !e)} hitSlop={8}>
-          <Text style={{ color: colors.textMuted, fontSize: 12 }}>{editing ? "Close" : "Edit"}</Text>
-        </Pressable>
-      </View>
+      }
+    >
       {editing && <HabitEditor habit={habit} onDone={() => setEditing(false)} />}
-    </View>
+    </HabitCheckRow>
   );
 }
 
-function AddHabitForm({ defaultCategory }: { defaultCategory: HabitCategory }) {
-  const colors = useThemeColors();
+function AddHabitForm({ defaultCategory, onClose }: { defaultCategory: HabitCategory; onClose: () => void }) {
   const invalidate = useInvalidateHabitData();
   const [name, setName] = useState("");
   const [category, setCategory] = useState<HabitCategory>(defaultCategory);
@@ -159,52 +93,59 @@ function AddHabitForm({ defaultCategory }: { defaultCategory: HabitCategory }) {
   const canAdd = name.trim().length > 0 && !create.isPending;
 
   return (
-    <View style={[styles.addCard, { backgroundColor: colors.card, borderColor: colors.border }]}>
-      <Text style={[styles.sectionHeader, { color: colors.text }]}>Add a habit</Text>
+    <Card style={{ gap: 12 }}>
+      <View style={styles.formHeader}>
+        <Text style={styles.formTitle}>New habit</Text>
+        <Pressable onPress={onClose} hitSlop={8}>
+          <Text style={{ color: Colors.textSecondary }}>Done</Text>
+        </Pressable>
+      </View>
       <TextInput
-        style={[styles.input, { color: colors.text, borderColor: colors.border }]}
+        style={inputStyle}
         placeholder="e.g. Read 10 pages"
-        placeholderTextColor={colors.textMuted}
+        placeholderTextColor={Colors.textMuted}
         value={name}
         onChangeText={setName}
         onSubmitEditing={() => canAdd && create.mutate()}
       />
       <CategoryPicker value={category} onChange={setCategory} />
       <WeeklyTargetStepper value={weeklyTarget} onChange={setWeeklyTarget} />
-      <Pressable
-        style={[styles.addButton, { backgroundColor: colors.tint }, !canAdd && styles.disabled]}
-        onPress={() => create.mutate()}
-        disabled={!canAdd}
-      >
-        {create.isPending ? <ActivityIndicator color="#fff" /> : <Text style={styles.addButtonText}>Add</Text>}
-      </Pressable>
-    </View>
+      {create.isError && <Text style={{ color: Colors.danger }}>Couldn&apos;t add that habit.</Text>}
+      <PrimaryButton label="Add habit" onPress={() => create.mutate()} disabled={!canAdd} loading={create.isPending} />
+    </Card>
   );
 }
 
 export default function HabitsScreen() {
-  const colors = useThemeColors();
   const params = useLocalSearchParams<{ category?: string }>();
   const filter = HABIT_CATEGORIES.find((c) => c === params.category);
   const [viewingYesterday, setViewingYesterday] = useState(false);
+  const [adding, setAdding] = useState(false);
   const forDate = viewingYesterday ? yesterdayIso() : todayIso();
   const habits = useHabits(forDate);
 
   const active = (habits.data ?? []).filter((h) => h.active && (!filter || h.category === filter));
   const sections = groupByCategory(active);
+  const done = active.filter((h) => h.completed_on_date).length;
 
   return (
-    <ScrollView style={{ backgroundColor: colors.background }} contentContainerStyle={styles.container}>
-      <View style={[styles.segmented, { borderColor: colors.border }]}>
+    <ScrollView
+      style={{ backgroundColor: Colors.background }}
+      contentContainerStyle={styles.container}
+      keyboardShouldPersistTaps="handled"
+    >
+      <View style={styles.segmented}>
         {([false, true] as const).map((yesterday) => {
           const selected = viewingYesterday === yesterday;
           return (
             <Pressable
               key={String(yesterday)}
-              style={[styles.segment, selected && { backgroundColor: colors.tint }]}
+              style={[styles.segment, selected && styles.segmentSelected]}
               onPress={() => setViewingYesterday(yesterday)}
+              accessibilityRole="tab"
+              accessibilityState={{ selected }}
             >
-              <Text style={{ color: selected ? "#fff" : colors.text, fontWeight: "600" }}>
+              <Text style={[styles.segmentText, selected && styles.segmentTextSelected]}>
                 {yesterday ? "Yesterday" : "Today"}
               </Text>
             </Pressable>
@@ -213,74 +154,81 @@ export default function HabitsScreen() {
       </View>
 
       {filter && (
-        <View style={[styles.filterBar, { borderColor: colors.border }]}>
-          <Text style={{ color: colors.text }}>
+        <Card style={styles.filterBar}>
+          <CategoryIcon category={filter} size={24} />
+          <Text style={{ color: Colors.text, flex: 1 }}>
             Showing <Text style={{ fontWeight: "700" }}>{filter}</Text> habits
           </Text>
           <Pressable onPress={() => router.setParams({ category: "" })} hitSlop={8}>
-            <Text style={{ color: colors.tint, fontWeight: "600" }}>Show all</Text>
+            <Text style={{ color: Colors.tint, fontWeight: "600" }}>Show all</Text>
           </Pressable>
-        </View>
+        </Card>
       )}
 
-      {habits.isLoading && <ActivityIndicator style={{ marginTop: 24 }} />}
-      {habits.isError && (
-        <Text style={{ color: colors.danger, marginTop: 16 }}>Couldn&apos;t load habits.</Text>
+      {habits.isLoading && <ActivityIndicator color={Colors.tint} style={{ marginTop: 24 }} />}
+      {habits.isError && <Text style={{ color: Colors.danger, marginTop: 16 }}>Couldn&apos;t load habits.</Text>}
+
+      {active.length > 0 && (
+        <Text style={styles.summary}>
+          {done} of {active.length} done {viewingYesterday ? "yesterday" : "today"}
+        </Text>
       )}
 
       {sections.map((section) => (
         <View key={section.category} style={styles.section}>
-          <Text style={[styles.sectionHeader, { color: colors.textSecondary }]}>{section.category}</Text>
+          <Text style={styles.sectionHeader}>{section.category}</Text>
           {section.habits.map((h) => (
-            <HabitRow key={h.id} habit={h} forDate={forDate} />
+            <EditableHabitRow key={h.id} habit={h} forDate={forDate} />
           ))}
         </View>
       ))}
 
-      {!habits.isLoading && sections.length === 0 && (
-        <Text style={{ color: colors.textSecondary, marginTop: 16 }}>
-          {filter ? `No ${filter} habits yet. Add one below.` : "No habits yet. Add one below."}
-        </Text>
+      {!habits.isLoading && !habits.isError && sections.length === 0 && (
+        <Text style={styles.summary}>{filter ? `No ${filter} habits yet.` : "No habits yet."}</Text>
       )}
 
-      <AddHabitForm key={filter ?? "all"} defaultCategory={filter ?? DEFAULT_HABIT_CATEGORY} />
+      <View style={{ marginTop: 8 }}>
+        {adding ? (
+          <AddHabitForm
+            key={filter ?? "all"}
+            defaultCategory={filter ?? DEFAULT_HABIT_CATEGORY}
+            onClose={() => setAdding(false)}
+          />
+        ) : (
+          <SecondaryButton label="+ Add habit" onPress={() => setAdding(true)} />
+        )}
+      </View>
     </ScrollView>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { padding: 16, gap: 10 },
-  segmented: { flexDirection: "row", borderWidth: 1, borderRadius: 10, overflow: "hidden", marginBottom: 4 },
-  segment: { flex: 1, paddingVertical: 10, alignItems: "center" },
-  filterBar: {
+  container: { padding: 16, paddingBottom: 32, gap: 10 },
+  segmented: {
     flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
+    backgroundColor: Colors.card,
+    borderColor: Colors.border,
     borderWidth: 1,
-    borderRadius: 10,
-    padding: 12,
+    borderRadius: 999,
+    padding: 4,
   },
-  section: { gap: 8, marginTop: 6 },
-  sectionHeader: { fontSize: 13, fontWeight: "700", textTransform: "uppercase", letterSpacing: 0.5 },
-  habitRow: { borderRadius: 12, borderWidth: 1, padding: 14, gap: 12 },
-  habitMain: { flexDirection: "row", alignItems: "center", justifyContent: "space-between" },
-  checkboxRow: { flexDirection: "row", alignItems: "center", gap: 12, flex: 1 },
-  checkbox: {
-    width: 26,
-    height: 26,
-    borderRadius: 13,
-    borderWidth: 2,
-    alignItems: "center",
-    justifyContent: "center",
+  segment: { flex: 1, paddingVertical: 9, alignItems: "center", borderRadius: 999 },
+  segmentSelected: { backgroundColor: Colors.tint },
+  segmentText: { color: Colors.textSecondary, fontWeight: "600" },
+  segmentTextSelected: { color: Colors.onTint },
+  filterBar: { flexDirection: "row", alignItems: "center", gap: 10, paddingVertical: 12 },
+  summary: { color: Colors.textSecondary, fontSize: 13, marginTop: 4 },
+  section: { gap: 8, marginTop: 8 },
+  sectionHeader: {
+    color: Colors.textMuted,
+    fontSize: 12,
+    fontWeight: "700",
+    textTransform: "uppercase",
+    letterSpacing: 0.8,
   },
-  checkmark: { color: "#fff", fontWeight: "700" },
-  habitName: { fontSize: 16 },
-  habitNameDone: { textDecorationLine: "line-through", opacity: 0.6 },
-  editor: { gap: 12 },
+  editLink: { color: Colors.textMuted, fontSize: 13, marginRight: 4 },
+  editor: { gap: 12, paddingTop: 4 },
   editorButtons: { flexDirection: "row", justifyContent: "space-between", alignItems: "center" },
-  addCard: { borderRadius: 12, borderWidth: 1, padding: 14, gap: 12, marginTop: 12 },
-  input: { borderWidth: 1, borderRadius: 10, padding: 12, fontSize: 15 },
-  addButton: { borderRadius: 10, padding: 12, alignItems: "center" },
-  addButtonText: { color: "#fff", fontWeight: "600" },
-  disabled: { opacity: 0.5 },
+  formHeader: { flexDirection: "row", justifyContent: "space-between", alignItems: "center" },
+  formTitle: { color: Colors.text, fontSize: 16, fontWeight: "700" },
 });

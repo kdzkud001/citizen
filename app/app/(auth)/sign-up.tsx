@@ -1,21 +1,13 @@
-import { Link } from "expo-router";
+import { Link, router } from "expo-router";
 import { useState } from "react";
-import {
-  ActivityIndicator,
-  KeyboardAvoidingView,
-  Platform,
-  Pressable,
-  StyleSheet,
-  Text,
-  TextInput,
-  View,
-} from "react-native";
+import { Pressable, StyleSheet, Text, TextInput } from "react-native";
 
+import { AuthScaffold } from "@/components/AuthScaffold";
+import { PrimaryButton, inputStyle } from "@/components/ui";
+import { Colors } from "@/constants/Colors";
 import { useAuth } from "@/hooks/useAuth";
-import { useThemeColors } from "@/hooks/useThemeColors";
 
 export default function SignUpScreen() {
-  const colors = useThemeColors();
   const { signUp } = useAuth();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -42,31 +34,23 @@ export default function SignUpScreen() {
 
   if (checkEmail) {
     return (
-      <View style={[styles.container, { backgroundColor: colors.background }]}>
-        <Text style={[styles.title, { color: colors.text }]}>Check your email</Text>
-        <Text style={{ color: colors.textSecondary, textAlign: "center" }}>
+      <AuthScaffold>
+        <Text style={styles.title}>Check your email</Text>
+        <Text style={styles.body}>
           We sent a confirmation link to {email}. Tap it, then come back and sign in.
         </Text>
-        <Link href="/(auth)/sign-in" asChild>
-          <Pressable style={[styles.button, { backgroundColor: colors.tint, marginTop: 24 }]}>
-            <Text style={styles.buttonText}>Back to sign in</Text>
-          </Pressable>
-        </Link>
-      </View>
+        <PrimaryButton label="Back to sign in" onPress={() => router.replace("/(auth)/sign-in")} />
+      </AuthScaffold>
     );
   }
 
   return (
-    <KeyboardAvoidingView
-      style={[styles.container, { backgroundColor: colors.background }]}
-      behavior={Platform.OS === "ios" ? "padding" : undefined}
-    >
-      <Text style={[styles.title, { color: colors.text }]}>Create your account</Text>
-
+    <AuthScaffold>
+      <Text style={styles.title}>Create your account</Text>
       <TextInput
-        style={[styles.input, { color: colors.text, borderColor: colors.border }]}
+        style={inputStyle}
         placeholder="Email"
-        placeholderTextColor={colors.textMuted}
+        placeholderTextColor={Colors.textMuted}
         autoCapitalize="none"
         autoComplete="email"
         keyboardType="email-address"
@@ -74,43 +58,38 @@ export default function SignUpScreen() {
         onChangeText={setEmail}
       />
       <TextInput
-        style={[styles.input, { color: colors.text, borderColor: colors.border }]}
+        style={inputStyle}
         placeholder="Password (min. 6 characters)"
-        placeholderTextColor={colors.textMuted}
+        placeholderTextColor={Colors.textMuted}
         secureTextEntry
         autoComplete="new-password"
         value={password}
         onChangeText={setPassword}
       />
 
-      {error && <Text style={[styles.error, { color: colors.danger }]}>{error}</Text>}
+      {error && <Text style={styles.error}>{error}</Text>}
 
-      <Pressable
-        style={[styles.button, { backgroundColor: colors.tint }, loading && styles.buttonDisabled]}
+      <PrimaryButton
+        label="Get started"
         onPress={handleSignUp}
-        disabled={loading || !email || password.length < 6}
-      >
-        {loading ? <ActivityIndicator color="#fff" /> : <Text style={styles.buttonText}>Sign up</Text>}
-      </Pressable>
+        disabled={!email || password.length < 6}
+        loading={loading}
+      />
 
       <Link href="/(auth)/sign-in" asChild>
         <Pressable style={styles.linkRow}>
-          <Text style={{ color: colors.textSecondary }}>
-            Already have an account? <Text style={{ color: colors.tint, fontWeight: "600" }}>Sign in</Text>
+          <Text style={{ color: Colors.textSecondary }}>
+            Already have an account? <Text style={{ color: Colors.tint, fontWeight: "700" }}>Sign in</Text>
           </Text>
         </Pressable>
       </Link>
-    </KeyboardAvoidingView>
+    </AuthScaffold>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, justifyContent: "center", padding: 24, gap: 12 },
-  title: { fontSize: 28, fontWeight: "700", marginBottom: 12, textAlign: "center" },
-  input: { borderWidth: 1, borderRadius: 10, padding: 14, fontSize: 16 },
-  button: { borderRadius: 10, padding: 14, alignItems: "center", marginTop: 8 },
-  buttonDisabled: { opacity: 0.6 },
-  buttonText: { color: "#fff", fontSize: 16, fontWeight: "600" },
-  error: { textAlign: "center" },
-  linkRow: { alignItems: "center", marginTop: 16 },
+  title: { color: Colors.text, fontSize: 22, fontWeight: "800", marginBottom: 4 },
+  body: { color: Colors.textSecondary, fontSize: 15, lineHeight: 22, marginBottom: 8 },
+  error: { color: Colors.danger, textAlign: "center" },
+  linkRow: { alignItems: "center", marginTop: 8, padding: 8 },
 });

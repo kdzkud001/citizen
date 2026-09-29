@@ -91,7 +91,7 @@ export default function OnboardingScreen() {
           <Text style={{ color: colors.tint }} onPress={() => Linking.openURL(LYFTA_KEYS_URL)}>
             my.lyfta.app/developers
           </Text>
-          , then paste it below. You can always do this later from Settings.
+          , then paste it below. You can always do this later from Profile.
         </Text>
 
         {lyftaConnected ? (
@@ -131,9 +131,9 @@ export default function OnboardingScreen() {
           disabled={finish.isPending}
         >
           {finish.isPending ? (
-            <ActivityIndicator color="#fff" />
+            <ActivityIndicator color={colors.onTint} />
           ) : (
-            <Text style={styles.buttonText}>Continue</Text>
+            <Text style={[styles.buttonText, { color: colors.onTint }]}>Continue</Text>
           )}
         </Pressable>
       </ScrollView>
@@ -157,8 +157,8 @@ const styles = StyleSheet.create({
   },
   stepperText: { fontSize: 20, fontWeight: "600" },
   stepperValue: { fontSize: 18, fontWeight: "700", minWidth: 24, textAlign: "center" },
-  button: { borderRadius: 10, padding: 14, alignItems: "center" },
-  secondaryButton: { borderRadius: 10, padding: 14, alignItems: "center", borderWidth: 1, marginTop: 8 },
+  button: { borderRadius: 999, padding: 14, alignItems: "center" },
+  secondaryButton: { borderRadius: 999, padding: 14, alignItems: "center", borderWidth: 1, marginTop: 8 },
   buttonDisabled: { opacity: 0.6 },
-  buttonText: { color: "#fff", fontSize: 16, fontWeight: "600" },
+  buttonText: { fontSize: 16, fontWeight: "700" },
 });

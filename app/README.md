@@ -95,14 +95,33 @@ Walk through this on your phone after any significant change.
 - [ ] Repeat onboarding (new account), this time paste a real Lyfta API
       key and connect successfully
 
+**Sign in / sign up**
+- [ ] Night-sky backdrop with the castle skyline, "CITIZENSHIP" wordmark
+      fully visible on your narrowest phone, form usable with the keyboard up
+
 **Home**
-- [ ] Class badge, rolling score, today's points all render
-- [ ] Progress bar and "N points to <next class>" look sane
-- [ ] 28-day chart renders with no crash on a brand-new (all-zero) account
-- [ ] Pull to refresh -- triggers a sync (if Lyfta connected) and score
+- [ ] Greeting uses your first name and the right time of day; the avatar
+      shows your initials and opens Profile
+- [ ] Class hero card: crest, class name, rolling score, progress bar and
+      "N points to <next class>" (with thousands separators); tapping it
+      opens the class ladder
+- [ ] Today strip: total / habits / workouts points
+- [ ] Today's habits list: tap to complete (green check), tap again to undo
+      -- score strip updates
+- [ ] Brand-new account: "Add your first habit" button opens Habits
+- [ ] Wellness balance card opens the Wellness tab
+- [ ] Latest workout card opens Workouts; empty state points at Profile
+- [ ] 28-day chart renders with no crash on an all-zero account
+- [ ] Pull to refresh -- triggers a sync (if Lyfta connected) and everything
       updates
 
-**Wellness wheel (Home)**
+**Class ladder** (Home hero card, or Profile → Class ladder)
+- [ ] All five classes top-down with point ranges; yours glows with a
+      "Current" pill
+
+**Wellness tab**
+- [ ] Overall balance ring shows the average of tracked pillars ("–" with
+      nothing tracked)
 - [ ] Brand-new account: all five spokes greyed out and labeled "not
       tracking", no filled shape
 - [ ] Add a Mind habit and complete it -- Mind spoke starts tracking with a
@@ -110,24 +129,26 @@ Walk through this on your phone after any significant change.
 - [ ] Connect Lyfta -- Fitness starts tracking even with no Fitness habits
 - [ ] Current window is a filled shape; previous window is a dashed outline
       (legend underneath names both)
-- [ ] Tap a spoke label -- opens Habits filtered to that category; "Show
-      all" clears the filter
-- [ ] Check it in dark mode -- grid, spokes, labels, and legend all readable
+- [ ] Balance insights name the strongest/lowest pillar and any big change
+- [ ] Tap a spoke label or a pillar row -- opens Habits filtered to that
+      category; "Show all" clears the filter
 - [ ] On the narrowest phone you have, no spoke label is clipped
 
-**Workouts**
-- [ ] Recent sessions list with points
-- [ ] Tap a session -- expands to show set loads and bonus points
+**Workouts** (Home → All workouts, or Profile → Workouts)
+- [ ] Summary card: session count, points, Lyfta sync status
+- [ ] Tap a session -- expands to the effort / bonus / body weight breakdown
 - [ ] Empty state renders sanely with no workouts
 
 **Habits**
-- [ ] Add a habit, tap to complete it -- checkmark + score bump on Home (15 pts)
+- [ ] Add a habit ("+ Add habit"), tap to complete it -- green check +
+      score bump on Home (15 pts)
 - [ ] Tap again -- undoes it (unchecks, score drops back)
 - [ ] Switch to "Yesterday" -- shows yesterday's completion state
       independently of today's
 - [ ] Add habits with different categories and weekly targets -- the list
       groups them under category headers in order (Mind, Spirit,
-      Discipline, Body, Fitness), each row shows "Every day" or "N× a week"
+      Discipline, Body, Fitness), each row shows its pillar icon and
+      "Every day" or "N× a week"
 - [ ] Complete habits in 3 different categories on one day -- Home's
       today points include the +15 balance bonus
 - [ ] Edit a habit's category and weekly target -- it moves to the new
@@ -147,12 +168,33 @@ Walk through this on your phone after any significant change.
 - [ ] Non-owner leaves with confirmation -- clan screen reverts to
       create/join
 
-**Settings**
+**Profile**
+- [ ] Header shows your initials, name, class and score
 - [ ] Edit display name / weekly target, save -- reflected on Home
 - [ ] Lyfta: manual sync, disconnect, reconnect
 - [ ] Sign out -- back at sign-in, and signing back in restores state
 
 ## Assumptions
+
+- **The app is dark-only** (`app.json` `userInterfaceStyle: "dark"`): one
+  navy theme in `constants/Colors.ts`, matching the design mockup. A light
+  theme later only needs `Colors.ts` and `hooks/useThemeColors.ts`.
+- **Pillar and class colors are validated, and their order matters.** Both
+  are the data-viz skill's dark categorical steps, checked with
+  `validate_palette.js` against the navy card surfaces (all checks pass).
+  The mockup's Mind-blue/Spirit-purple pair failed the colorblind checks
+  side by side, so Spirit is magenta, Discipline gold and Fitness orange.
+  Every color is always paired with the pillar's/class's name and icon.
+- **Habits shows Today/Yesterday, not a Mon–Sun strip.** The backend only
+  returns habit state for today and yesterday, so a week strip with per-day
+  ticks (as in the mockup) needs a new endpoint first.
+- **Workouts and the class ladder are pushed screens**, not tabs (tabs are
+  Home, Habits, Wellness, Clan, Profile). Workout duration and calories
+  aren't shown: the API doesn't return them.
+- **Not built from the mockup yet** (need backend work or artwork): the
+  Progress/insights screen with 90-day/all-time totals and per-pillar
+  points, the global clan leaderboard, clan chat, and the "virtual world"
+  screen. The splash art is an original SVG skyline, not an illustration.
 
 - **Onboarding-completion is tracked locally on-device** (AsyncStorage), not
   a backend field. Reinstalling the app or signing in on a second device
@@ -164,7 +206,7 @@ Walk through this on your phone after any significant change.
   keeps working in Expo Go (that native module isn't bundled there).
 - **A 401 that survives one refresh-and-retry signs the user out globally**
   (`lib/queryClient.ts`), rather than surfacing as a per-screen error.
-- **The wellness wheel is drawn with react-native-svg** (bundled in Expo Go,
+- **The wellness wheel (Wellness tab) is drawn with react-native-svg** (bundled in Expo Go,
   verified against the SDK 57 docs), not a chart library. Spoke labels are
   React Native `Pressable`s positioned over the SVG rather than SVG
   `onPress` handlers, for bigger hit targets and screen-reader labels.

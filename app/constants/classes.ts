@@ -1,21 +1,29 @@
 import type { ClassName } from "../types/api";
 
 /**
- * Colors validated with the data-viz skill's CVD-safety checker
- * (scripts/validate_palette.js) as a 5-slot categorical palette, both
- * modes passing every hard gate. Since badges always render with their
- * class name label + a distinct icon alongside the color, the light-mode
- * contrast WARN on 3 of the 5 (a color-only reader would struggle) is
- * covered by that "relief rule" -- never color alone.
+ * Colors are the data-viz skill's dark-mode categorical steps, validated
+ * with its CVD-safety checker (scripts/validate_palette.js) against the
+ * navy card surfaces in constants/Colors.ts: every check passes. Badges
+ * still always pair the color with the class name and a distinct icon --
+ * never color alone.
  */
 export const CLASS_ORDER: ClassName[] = ["Outsider", "Commoner", "Citizen", "Noble", "Elite"];
 
-export const CLASS_THEME: Record<ClassName, { light: string; dark: string; icon: IconName }> = {
-  Outsider: { light: "#2a78d6", dark: "#3987e5", icon: "walk-outline" },
-  Commoner: { light: "#eb6834", dark: "#d95926", icon: "hammer-outline" },
-  Citizen: { light: "#1baf7a", dark: "#199e70", icon: "shield-outline" },
-  Noble: { light: "#eda100", dark: "#c98500", icon: "ribbon-outline" },
-  Elite: { light: "#e87ba4", dark: "#d55181", icon: "star-outline" },
+export const CLASS_THEME: Record<ClassName, { color: string; icon: { ios: string; android: string } }> = {
+  Outsider: { color: "#3987e5", icon: { ios: "figure.walk", android: "directions_walk" } },
+  Commoner: { color: "#d95926", icon: { ios: "hammer.fill", android: "construction" } },
+  Citizen: { color: "#199e70", icon: { ios: "shield.fill", android: "shield" } },
+  Noble: { color: "#c98500", icon: { ios: "medal.fill", android: "military_tech" } },
+  Elite: { color: "#d55181", icon: { ios: "crown.fill", android: "workspace_premium" } },
+};
+
+/** One-line flavor text for the class ladder. */
+export const CLASS_BLURB: Record<ClassName, string> = {
+  Outsider: "Just arriving at the gates",
+  Commoner: "Building the daily rhythm",
+  Citizen: "A steady member of the realm",
+  Noble: "Consistency others look up to",
+  Elite: "The top of the kingdom",
 };
 
 // Matches backend CLASS_THRESHOLDS in citizenship_score/config.py.
@@ -26,12 +34,3 @@ export const CLASS_THRESHOLDS: Record<ClassName, number> = {
   Noble: 2000,
   Elite: 3500,
 };
-
-// Narrow to just the Ionicons names this file actually uses, so a typo is
-// a type error instead of a silent missing icon at runtime.
-export type IconName =
-  | "walk-outline"
-  | "hammer-outline"
-  | "shield-outline"
-  | "ribbon-outline"
-  | "star-outline";

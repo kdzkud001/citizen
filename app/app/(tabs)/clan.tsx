@@ -1,24 +1,24 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
-import {
-  ActivityIndicator,
-  Alert,
-  Pressable,
-  ScrollView,
-  Share,
-  StyleSheet,
-  Text,
-  TextInput,
-  View,
-} from "react-native";
+import { Alert, ScrollView, Share, StyleSheet, Text, TextInput, View } from "react-native";
 
-import { ClassBadge } from "@/components/ClassBadge";
+import { ClassCrest } from "@/components/ClassBadge";
+import { Icon } from "@/components/Icon";
+import {
+  Card,
+  CenteredMessage,
+  LoadingScreen,
+  PrimaryButton,
+  SecondaryButton,
+  SectionHeader,
+  inputStyle,
+} from "@/components/ui";
+import { Colors } from "@/constants/Colors";
 import { queryKeys, useClan } from "@/hooks/queries";
-import { useThemeColors } from "@/hooks/useThemeColors";
 import { api, ApiError } from "@/lib/api";
+import { formatPoints } from "@/lib/format";
 
 function CreateOrJoinClan() {
-  const colors = useThemeColors();
   const queryClient = useQueryClient();
   const [name, setName] = useState("");
   const [inviteCode, setInviteCode] = useState("");
@@ -39,67 +39,62 @@ function CreateOrJoinClan() {
   });
 
   return (
-    <ScrollView contentContainerStyle={styles.container}>
-      <Text style={[styles.sectionTitle, { color: colors.text }]}>Create a clan</Text>
-      <TextInput
-        style={[styles.input, { color: colors.text, borderColor: colors.border }]}
-        placeholder="Clan name"
-        placeholderTextColor={colors.textMuted}
-        value={name}
-        onChangeText={setName}
-      />
-      <Pressable
-        style={[styles.button, { backgroundColor: colors.tint }, !name.trim() && styles.disabled]}
-        onPress={() => {
-          setError(null);
-          create.mutate();
-        }}
-        disabled={!name.trim() || create.isPending}
-      >
-        {create.isPending ? (
-          <ActivityIndicator color="#fff" />
-        ) : (
-          <Text style={styles.buttonText}>Create clan</Text>
-        )}
-      </Pressable>
-
-      <Text style={[styles.sectionTitle, { color: colors.text, marginTop: 32 }]}>
-        Join with an invite code
+    <ScrollView
+      style={{ backgroundColor: Colors.background }}
+      contentContainerStyle={styles.container}
+      keyboardShouldPersistTaps="handled"
+    >
+      <Text style={styles.intro}>
+        Clans pool their members&apos; scores. Start one and share the invite code, or join a friend&apos;s.
       </Text>
-      <TextInput
-        style={[styles.input, { color: colors.text, borderColor: colors.border }]}
-        placeholder="Invite code"
-        placeholderTextColor={colors.textMuted}
-        autoCapitalize="characters"
-        value={inviteCode}
-        onChangeText={setInviteCode}
-      />
-      <Pressable
-        style={[
-          styles.secondaryButton,
-          { borderColor: colors.tint },
-          !inviteCode.trim() && styles.disabled,
-        ]}
-        onPress={() => {
-          setError(null);
-          join.mutate();
-        }}
-        disabled={!inviteCode.trim() || join.isPending}
-      >
-        {join.isPending ? (
-          <ActivityIndicator color={colors.tint} />
-        ) : (
-          <Text style={{ color: colors.tint, fontWeight: "600" }}>Join clan</Text>
-        )}
-      </Pressable>
 
-      {error && <Text style={{ color: colors.danger, marginTop: 12 }}>{error}</Text>}
+      <Card style={{ gap: 10 }}>
+        <Text style={styles.cardTitle}>Create a clan</Text>
+        <TextInput
+          style={inputStyle}
+          placeholder="Clan name"
+          placeholderTextColor={Colors.textMuted}
+          value={name}
+          onChangeText={setName}
+        />
+        <PrimaryButton
+          label="Create clan"
+          onPress={() => {
+            setError(null);
+            create.mutate();
+          }}
+          disabled={!name.trim()}
+          loading={create.isPending}
+        />
+      </Card>
+
+      <Card style={{ gap: 10 }}>
+        <Text style={styles.cardTitle}>Join with an invite code</Text>
+        <TextInput
+          style={inputStyle}
+          placeholder="Invite code"
+          placeholderTextColor={Colors.textMuted}
+          autoCapitalize="characters"
+          value={inviteCode}
+          onChangeText={setInviteCode}
+        />
+        <SecondaryButton
+          label="Join clan"
+          onPress={() => {
+            setError(null);
+            join.mutate();
+          }}
+          disabled={!inviteCode.trim()}
+          loading={join.isPending}
+        />
+      </Card>
+
+      {error && <Text style={{ color: Colors.danger }}>{error}</Text>}
     </ScrollView>
   );
 }
 
 export default function ClanScreen() {
-  const colors = useThemeColors();
   const queryClient = useQueryClient();
   const clan = useClan();
 
@@ -113,27 +108,12 @@ export default function ClanScreen() {
     onSuccess: () => queryClient.invalidateQueries({ queryKey: queryKeys.clan }),
   });
 
-  if (clan.isLoading) {
-    return (
-      <View style={[styles.center, { backgroundColor: colors.background }]}>
-        <ActivityIndicator />
-      </View>
-    );
-  }
-
-  if (clan.notInClan) {
-    return <CreateOrJoinClan />;
-  }
-
-  if (clan.isError || !clan.data) {
-    return (
-      <View style={[styles.center, { backgroundColor: colors.background }]}>
-        <Text style={{ color: colors.danger }}>Couldn&apos;t load your clan.</Text>
-      </View>
-    );
-  }
+  if (clan.isLoading) return <LoadingScreen />;
+  if (clan.notInClan) return <CreateOrJoinClan />;
+  if (clan.isError || !clan.data) return <CenteredMessage tone="danger">Couldn&apos;t load your clan.</CenteredMessage>;
 
   const c = clan.data;
+  const members = [...c.members].sort((a, b) => b.rolling_score - a.rolling_score);
 
   function confirmLeave() {
     Alert.alert("Leave clan?", `You will leave "${c.name}". You can rejoin later with the invite code.`, [
@@ -149,90 +129,100 @@ export default function ClanScreen() {
   }
 
   return (
-    <ScrollView style={{ backgroundColor: colors.background }} contentContainerStyle={styles.container}>
-      <View style={[styles.card, { backgroundColor: colors.card, borderColor: colors.border }]}>
-        <Text style={[styles.clanName, { color: colors.text }]}>{c.name}</Text>
-        <Text style={{ color: colors.textSecondary }}>
-          Clan score: {Math.round(c.clan_score)} · Participation: {Math.round(c.participation * 100)}%
-        </Text>
-
-        <View style={styles.inviteRow}>
-          <Text style={{ color: colors.textMuted }}>Invite code: </Text>
-          <Text style={[styles.inviteCode, { color: colors.tint }]}>{c.invite_code}</Text>
+    <ScrollView style={{ backgroundColor: Colors.background }} contentContainerStyle={styles.container}>
+      <Card glow={Colors.tint} style={{ gap: 14 }}>
+        <View style={styles.clanHeader}>
+          <View style={styles.clanEmblem}>
+            <Icon icon={{ ios: "shield.lefthalf.filled", android: "shield" }} color={Colors.tint} size={30} />
+          </View>
+          <View style={{ flex: 1 }}>
+            <Text style={styles.clanName}>{c.name}</Text>
+            <Text style={styles.muted}>
+              {c.members.length} member{c.members.length === 1 ? "" : "s"}
+            </Text>
+          </View>
         </View>
-        <Pressable style={[styles.secondaryButton, { borderColor: colors.tint }]} onPress={shareInviteCode}>
-          <Text style={{ color: colors.tint, fontWeight: "600" }}>Share invite code</Text>
-        </Pressable>
+        <View style={styles.statsRow}>
+          <View style={styles.stat}>
+            <Text style={styles.statValue}>{formatPoints(c.clan_score)}</Text>
+            <Text style={styles.statLabel}>clan score</Text>
+          </View>
+          <View style={styles.stat}>
+            <Text style={styles.statValue}>{Math.round(c.participation * 100)}%</Text>
+            <Text style={styles.statLabel}>participation</Text>
+          </View>
+        </View>
+      </Card>
 
+      <Card style={{ gap: 10 }}>
+        <View style={styles.inviteRow}>
+          <Text style={styles.muted}>Invite code</Text>
+          <Text style={styles.inviteCode}>{c.invite_code}</Text>
+        </View>
+        <PrimaryButton label="Share invite code" onPress={shareInviteCode} />
         {c.is_owner && (
-          <Pressable
-            style={[styles.secondaryButton, { borderColor: colors.border, marginTop: 8 }]}
+          <SecondaryButton
+            label="Regenerate invite code"
+            tone="neutral"
             onPress={() => regenerate.mutate()}
-            disabled={regenerate.isPending}
-          >
-            {regenerate.isPending ? (
-              <ActivityIndicator color={colors.text} />
-            ) : (
-              <Text style={{ color: colors.text }}>Regenerate invite code</Text>
-            )}
-          </Pressable>
+            loading={regenerate.isPending}
+          />
         )}
-      </View>
+      </Card>
 
-      <Text style={[styles.sectionTitle, { color: colors.text, marginTop: 20 }]}>Leaderboard</Text>
-      {[...c.members]
-        .sort((a, b) => b.rolling_score - a.rolling_score)
-        .map((m, i) => (
+      <SectionHeader title="Leaderboard" />
+      <Card style={{ paddingVertical: 4 }}>
+        {members.map((m, i) => (
           <View
             key={`${m.display_name}-${i}`}
-            style={[styles.memberRow, { backgroundColor: colors.card, borderColor: colors.border }]}
+            style={[styles.memberRow, i < members.length - 1 && styles.memberDivider]}
           >
-            <Text style={{ color: colors.textMuted, width: 24 }}>{i + 1}</Text>
-            <Text style={[styles.memberName, { color: colors.text }]} numberOfLines={1}>
-              {m.display_name ?? "(no name)"}
-            </Text>
-            <Text style={{ color: colors.textSecondary, marginRight: 8 }}>
-              {Math.round(m.rolling_score)}
-            </Text>
-            <ClassBadge className={m.class_name} />
+            <Text style={styles.rank}>{i + 1}</Text>
+            <ClassCrest className={m.class_name} size={32} />
+            <View style={{ flex: 1 }}>
+              <Text style={styles.memberName} numberOfLines={1}>
+                {m.display_name ?? "(no name)"}
+              </Text>
+              <Text style={styles.statLabel}>{m.class_name}</Text>
+            </View>
+            <Text style={styles.memberScore}>{formatPoints(m.rolling_score)}</Text>
           </View>
         ))}
+      </Card>
 
-      <Pressable style={[styles.leaveButton, { borderColor: colors.danger }]} onPress={confirmLeave}>
-        <Text style={{ color: colors.danger, fontWeight: "600" }}>Leave clan</Text>
-      </Pressable>
+      <View style={{ marginTop: 12 }}>
+        <SecondaryButton label="Leave clan" tone="danger" onPress={confirmLeave} loading={leave.isPending} />
+      </View>
     </ScrollView>
   );
 }
 
 const styles = StyleSheet.create({
-  center: { flex: 1, alignItems: "center", justifyContent: "center", padding: 24 },
-  container: { padding: 20, gap: 8 },
-  sectionTitle: { fontSize: 18, fontWeight: "700", marginBottom: 8 },
-  input: { borderWidth: 1, borderRadius: 10, padding: 14, fontSize: 16, marginBottom: 10 },
-  button: { borderRadius: 10, padding: 14, alignItems: "center" },
-  secondaryButton: { borderRadius: 10, padding: 14, alignItems: "center", borderWidth: 1, marginTop: 8 },
-  buttonText: { color: "#fff", fontSize: 16, fontWeight: "600" },
-  disabled: { opacity: 0.5 },
-  card: { borderRadius: 14, borderWidth: 1, padding: 18, gap: 8 },
-  clanName: { fontSize: 22, fontWeight: "700" },
-  inviteRow: { flexDirection: "row", alignItems: "center", marginTop: 8 },
-  inviteCode: { fontSize: 18, fontWeight: "800", letterSpacing: 2 },
-  memberRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    borderRadius: 12,
+  container: { padding: 16, paddingBottom: 32, gap: 12 },
+  intro: { color: Colors.textSecondary, fontSize: 14, lineHeight: 20 },
+  cardTitle: { color: Colors.text, fontSize: 16, fontWeight: "700" },
+  muted: { color: Colors.textSecondary, fontSize: 13 },
+  clanHeader: { flexDirection: "row", alignItems: "center", gap: 14 },
+  clanEmblem: {
+    width: 56,
+    height: 56,
+    borderRadius: 16,
+    backgroundColor: Colors.cardRaised,
     borderWidth: 1,
-    padding: 12,
-    marginBottom: 8,
-    gap: 4,
-  },
-  memberName: { flex: 1, fontSize: 15, fontWeight: "600" },
-  leaveButton: {
-    marginTop: 20,
-    borderRadius: 10,
-    padding: 14,
+    borderColor: Colors.borderStrong,
     alignItems: "center",
-    borderWidth: 1,
+    justifyContent: "center",
   },
+  clanName: { color: Colors.text, fontSize: 22, fontWeight: "800" },
+  statsRow: { flexDirection: "row", gap: 24 },
+  stat: {},
+  statValue: { color: Colors.text, fontSize: 20, fontWeight: "800" },
+  statLabel: { color: Colors.textMuted, fontSize: 11 },
+  inviteRow: { flexDirection: "row", justifyContent: "space-between", alignItems: "center" },
+  inviteCode: { color: Colors.tint, fontSize: 20, fontWeight: "800", letterSpacing: 2 },
+  memberRow: { flexDirection: "row", alignItems: "center", gap: 10, paddingVertical: 10 },
+  memberDivider: { borderBottomWidth: 1, borderBottomColor: Colors.border },
+  rank: { color: Colors.textMuted, width: 20, fontWeight: "700" },
+  memberName: { color: Colors.text, fontSize: 15, fontWeight: "600" },
+  memberScore: { color: Colors.text, fontSize: 15, fontWeight: "700" },
 });

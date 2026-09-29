@@ -1,7 +1,7 @@
-import { useColorScheme } from "@/components/useColorScheme";
-import Colors from "@/constants/Colors";
+import { Colors } from "@/constants/Colors";
 
+/** Kept as a hook so screens don't care that the app has one theme -- a
+ * light theme later only needs to change this file and Colors.ts. */
 export function useThemeColors() {
-  const scheme = useColorScheme();
-  return Colors[scheme === "dark" ? "dark" : "light"];
+  return Colors;
 }

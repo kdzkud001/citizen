@@ -1,52 +1,49 @@
 import { Tabs } from "expo-router";
-import { SymbolView } from "expo-symbols";
 import type { ColorValue } from "react-native";
 
-import { useThemeColors } from "@/hooks/useThemeColors";
+import { Icon } from "@/components/Icon";
+import { Colors } from "@/constants/Colors";
 
 function TabIcon({ ios, android, color }: { ios: string; android: string; color: ColorValue }) {
-  return (
-    <SymbolView name={{ ios, android, web: android } as never} tintColor={color} size={24} />
-  );
+  return <Icon icon={{ ios, android }} color={color} size={24} />;
 }
 
 export default function TabLayout() {
-  const colors = useThemeColors();
-
   return (
     <Tabs
       screenOptions={{
         headerShown: true,
-        tabBarActiveTintColor: colors.tint,
-        tabBarInactiveTintColor: colors.tabIconDefault,
-        headerStyle: { backgroundColor: colors.card },
-        headerTitleStyle: { color: colors.text },
-        tabBarStyle: { backgroundColor: colors.card, borderTopColor: colors.border },
+        headerTitleAlign: "left",
+        headerStyle: { backgroundColor: Colors.background },
+        headerTitleStyle: { color: Colors.text, fontSize: 24, fontWeight: "800" },
+        headerShadowVisible: false,
+        tabBarActiveTintColor: Colors.tint,
+        tabBarInactiveTintColor: Colors.textMuted,
+        tabBarStyle: { backgroundColor: Colors.card, borderTopColor: Colors.border },
+        sceneStyle: { backgroundColor: Colors.background },
       }}
     >
       <Tabs.Screen
         name="index"
         options={{
           title: "Home",
+          // Home draws its own greeting header.
+          headerShown: false,
           tabBarIcon: ({ color }) => <TabIcon ios="house.fill" android="home" color={color} />,
-        }}
-      />
-      <Tabs.Screen
-        name="workouts"
-        options={{
-          title: "Workouts",
-          tabBarIcon: ({ color }) => (
-            <TabIcon ios="figure.strengthtraining.traditional" android="fitness_center" color={color} />
-          ),
         }}
       />
       <Tabs.Screen
         name="habits"
         options={{
           title: "Habits",
-          tabBarIcon: ({ color }) => (
-            <TabIcon ios="checkmark.circle.fill" android="check_circle" color={color} />
-          ),
+          tabBarIcon: ({ color }) => <TabIcon ios="checkmark.circle.fill" android="check_circle" color={color} />,
+        }}
+      />
+      <Tabs.Screen
+        name="wellness"
+        options={{
+          title: "Wellness",
+          tabBarIcon: ({ color }) => <TabIcon ios="circle.hexagongrid.fill" android="hub" color={color} />,
         }}
       />
       <Tabs.Screen
@@ -57,10 +54,10 @@ export default function TabLayout() {
         }}
       />
       <Tabs.Screen
-        name="settings"
+        name="profile"
         options={{
-          title: "Settings",
-          tabBarIcon: ({ color }) => <TabIcon ios="gearshape.fill" android="settings" color={color} />,
+          title: "Profile",
+          tabBarIcon: ({ color }) => <TabIcon ios="person.crop.circle.fill" android="account_circle" color={color} />,
         }}
       />
     </Tabs>

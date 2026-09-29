@@ -1,18 +1,20 @@
 import { Pressable, StyleSheet, Text, View } from "react-native";
 import Svg, { Circle, Line, Polygon } from "react-native-svg";
 
+import { CategoryIcon } from "@/components/CategoryIcon";
 import { useThemeColors } from "@/hooks/useThemeColors";
 import { radarPoint, radarPolygon } from "@/lib/radar";
 import type { HabitCategory, WheelOut } from "@/types/api";
 
 // Sized so the side labels stay inside the box: CENTER must cover
-// LABEL_RADIUS * cos(18deg) + LABEL_WIDTH / 2. 280px fits a 360px-wide
-// phone after screen and card padding.
-const SIZE = 280;
+// LABEL_RADIUS * cos(18deg) + LABEL_WIDTH / 2 (98 + 48 = 146 here). 292px
+// fits a 360px-wide phone inside the Wellness screen's padding (16 + 12
+// each side). LABEL_WIDTH fits the icon plus "Discipline".
+const SIZE = 292;
 const CENTER = SIZE / 2;
 const RADIUS = 75;
 const LABEL_RADIUS = RADIUS + 28;
-const LABEL_WIDTH = 84;
+const LABEL_WIDTH = 96;
 const GRID_LEVELS = [25, 50, 75, 100];
 
 interface Props {
@@ -71,7 +73,7 @@ export function WellnessWheel({ wheel, onSelectCategory }: Props) {
           <Polygon
             points={radarPolygon(current.map((s) => s.percent), RADIUS, CENTER)}
             fill={colors.tint}
-            fillOpacity={0.25}
+            fillOpacity={0.3}
             stroke={colors.tint}
             strokeWidth={2}
           />
@@ -98,9 +100,12 @@ export function WellnessWheel({ wheel, onSelectCategory }: Props) {
               }
               style={[styles.label, { left: p.x - LABEL_WIDTH / 2, top: p.y - 18 }]}
             >
-              <Text style={[styles.labelTitle, { color: muted ? colors.textMuted : colors.text }]}>
-                {spoke.category}
-              </Text>
+              <View style={styles.labelTitleRow}>
+                <CategoryIcon category={spoke.category} size={16} muted={muted} />
+                <Text style={[styles.labelTitle, { color: muted ? colors.textMuted : colors.text }]}>
+                  {spoke.category}
+                </Text>
+              </View>
               <Text style={[styles.labelValue, { color: muted ? colors.textMuted : colors.textSecondary }]}>
                 {muted ? "not tracking" : `${Math.round(spoke.percent)}%`}
               </Text>
@@ -126,6 +131,7 @@ export function WellnessWheel({ wheel, onSelectCategory }: Props) {
 const styles = StyleSheet.create({
   chart: { width: SIZE, height: SIZE, alignSelf: "center" },
   label: { position: "absolute", width: LABEL_WIDTH, alignItems: "center" },
+  labelTitleRow: { flexDirection: "row", alignItems: "center", gap: 4 },
   labelTitle: { fontSize: 13, fontWeight: "600" },
   labelValue: { fontSize: 12 },
   legend: { flexDirection: "row", justifyContent: "center", gap: 20, marginTop: 4 },

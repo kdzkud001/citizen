@@ -11,7 +11,41 @@ export function pointsToNextClassLabel(pointsToNextClass: number | null, current
   const rounded = Math.max(0, Math.round(pointsToNextClass));
 
   if (!nextClass) return "Top class reached";
-  return `${rounded} point${rounded === 1 ? "" : "s"} to ${nextClass}`;
+  return `${formatPoints(rounded)} point${rounded === 1 ? "" : "s"} to ${nextClass}`;
+}
+
+/** "Good morning" / "Good afternoon" / "Good evening" for the given local time. */
+export function greeting(now: Date): string {
+  const hour = now.getHours();
+  if (hour < 12) return "Good morning";
+  if (hour < 18) return "Good afternoon";
+  return "Good evening";
+}
+
+/** Up to two initials for the avatar circle; "?" when there's no name. */
+export function initials(name: string | null | undefined): string {
+  const words = (name ?? "").trim().split(/\s+/).filter(Boolean);
+  if (words.length === 0) return "?";
+  return words
+    .slice(0, 2)
+    .map((w) => w[0].toUpperCase())
+    .join("");
+}
+
+/** Whole points with thousands separators, e.g. 2480.4 -> "2,480". Done by
+ * hand because Hermes' toLocaleString support varies by platform. */
+export function formatPoints(points: number): string {
+  const rounded = Math.round(points);
+  const sign = rounded < 0 ? "-" : "";
+  return sign + String(Math.abs(rounded)).replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+}
+
+/** Point range label for the class ladder, e.g. "1,000 – 1,999 pts" or
+ * "3,500+ pts" for the top class. Outsider's -Infinity floor shows as 0. */
+export function classRangeLabel(lower: number, upper: number | null): string {
+  const from = formatPoints(Number.isFinite(lower) ? lower : 0);
+  if (upper === null) return `${from}+ pts`;
+  return `${from} – ${formatPoints(upper - 1)} pts`;
 }
 
 /** Home screen's progress bar fill: how far through the current class's
