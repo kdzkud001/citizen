@@ -46,6 +46,20 @@ Users earn points from Lyfta workouts and self-tracked habits; a rolling
 - **Two separate venvs**: run Phase 0's CLI/tests from `citizenship-app/`
   root, Phase 1's API/tests from `citizenship-app/backend/`. Don't mix them
   into one environment.
+- **Habits are a full scoring pillar, on par with workouts** (this is not a
+  gym-centric app). Each habit has a `category` from
+  `citizenship_score.config.HABIT_CATEGORIES` (`Mind`, `Spirit`,
+  `Discipline`, `Body`, `Fitness`) and a `weekly_target` (1–7). Scoring:
+  15/completion capped at 90/day; +15 balance bonus on days with 3+
+  categories (a scored Lyfta workout counts as `Fitness`); +25 per habit
+  meeting its weekly target in a Mon–Sun week, credited that Sunday, capped
+  at 6 habits/week. The wellness wheel (`scoring/wheel.py`, `GET /me/wheel`,
+  the Home radar chart) is per-category percent of those targets. Category
+  lists exist in three places that must stay in sync: the engine config
+  (source of truth), `app/constants/habits.ts`, and the `HabitCategory` type
+  in `app/types/api.ts`. The backend validates against the engine config, so
+  a new category needs no DB migration. Full formulas: `README.md`; spec:
+  `docs/PHASE2.md`.
 - **Set-type legend** (Lyfta `set_type_id`, confirmed against real account
   data): `0`=normal, `1`=warm-up (excluded from scoring), `2`=left,
   `3`=right, `5`=drop set, `7`=partial reps.
