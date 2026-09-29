@@ -14,6 +14,7 @@ import type {
   ProfileUpdate,
   ScoreSummary,
   SyncResult,
+  WheelOut,
 } from "../types/api";
 import { supabase } from "./supabase";
 
@@ -116,6 +117,7 @@ export const api = {
 
   getScore: () => request<ScoreSummary>("/me/score"),
   getWorkouts: (days?: number) => request<DailyWorkoutsOut[]>("/me/workouts", { query: { days } }),
+  getWheel: (days?: number) => request<WheelOut>("/me/wheel", { query: { days } }),
 
   getHabits: (forDate?: string) =>
     request<HabitWithCompletionOut[]>("/habits", { query: { for_date: forDate } }),

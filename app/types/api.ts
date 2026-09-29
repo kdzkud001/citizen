@@ -69,11 +69,38 @@ export interface DailyWorkoutsOut {
   sessions: SessionBreakdown[];
 }
 
+// --- /me/wheel ---------------------------------------------------------------
+
+export interface WheelSpokeOut {
+  category: HabitCategory;
+  percent: number;
+  completions: number;
+  target: number;
+  tracking: boolean;
+}
+
+export interface WheelWindowOut {
+  start: string;
+  end: string;
+  spokes: WheelSpokeOut[];
+}
+
+export interface WheelOut {
+  days: number;
+  current: WheelWindowOut;
+  previous: WheelWindowOut;
+}
+
 // --- /habits ---------------------------------------------------------------
+
+/** Mirrors citizenship_score's config.HABIT_CATEGORIES. */
+export type HabitCategory = "Mind" | "Spirit" | "Discipline" | "Body" | "Fitness";
 
 export interface HabitOut {
   id: string;
   name: string;
+  category: HabitCategory;
+  weekly_target: number;
   active: boolean;
 }
 
@@ -83,10 +110,14 @@ export interface HabitWithCompletionOut extends HabitOut {
 
 export interface HabitCreate {
   name: string;
+  category?: HabitCategory;
+  weekly_target?: number;
 }
 
 export interface HabitUpdate {
   name?: string;
+  category?: HabitCategory;
+  weekly_target?: number;
   active?: boolean;
 }
 

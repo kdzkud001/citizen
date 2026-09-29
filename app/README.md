@@ -102,17 +102,40 @@ Walk through this on your phone after any significant change.
 - [ ] Pull to refresh -- triggers a sync (if Lyfta connected) and score
       updates
 
+**Wellness wheel (Home)**
+- [ ] Brand-new account: all five spokes greyed out and labeled "not
+      tracking", no filled shape
+- [ ] Add a Mind habit and complete it -- Mind spoke starts tracking with a
+      small percent; the other spokes stay greyed
+- [ ] Connect Lyfta -- Fitness starts tracking even with no Fitness habits
+- [ ] Current window is a filled shape; previous window is a dashed outline
+      (legend underneath names both)
+- [ ] Tap a spoke label -- opens Habits filtered to that category; "Show
+      all" clears the filter
+- [ ] Check it in dark mode -- grid, spokes, labels, and legend all readable
+- [ ] On the narrowest phone you have, no spoke label is clipped
+
 **Workouts**
 - [ ] Recent sessions list with points
 - [ ] Tap a session -- expands to show set loads and bonus points
 - [ ] Empty state renders sanely with no workouts
 
 **Habits**
-- [ ] Add a habit, tap to complete it -- checkmark + score bump on Home
+- [ ] Add a habit, tap to complete it -- checkmark + score bump on Home (15 pts)
 - [ ] Tap again -- undoes it (unchecks, score drops back)
 - [ ] Switch to "Yesterday" -- shows yesterday's completion state
       independently of today's
-- [ ] Archive a habit -- disappears from the list
+- [ ] Add habits with different categories and weekly targets -- the list
+      groups them under category headers in order (Mind, Spirit,
+      Discipline, Body, Fitness), each row shows "Every day" or "N× a week"
+- [ ] Complete habits in 3 different categories on one day -- Home's
+      today points include the +15 balance bonus
+- [ ] Edit a habit's category and weekly target -- it moves to the new
+      section, and the score and wheel update
+- [ ] Archive a habit from its editor -- disappears from the list and from
+      the wheel's targets
+- [ ] Open Habits from a wheel spoke, then add a habit -- the category
+      picker defaults to that spoke's category
 
 **Clan**
 - [ ] Not in a clan: create one -- becomes owner, appears on own
@@ -141,6 +164,15 @@ Walk through this on your phone after any significant change.
   keeps working in Expo Go (that native module isn't bundled there).
 - **A 401 that survives one refresh-and-retry signs the user out globally**
   (`lib/queryClient.ts`), rather than surfacing as a per-screen error.
+- **The wellness wheel is drawn with react-native-svg** (bundled in Expo Go,
+  verified against the SDK 57 docs), not a chart library. Spoke labels are
+  React Native `Pressable`s positioned over the SVG rather than SVG
+  `onPress` handlers, for bigger hit targets and screen-reader labels.
+  Non-tracking spokes plot at 0 and are greyed/dashed with a "not tracking"
+  label, so they read as "no data" rather than "0%".
+- **Tapping a spoke filters the Habits tab** (`?category=`), with "Show all"
+  to clear it. That's the closest thing to "opens that category's habits"
+  without a separate per-category screen.
 - **The clan leaderboard sorts client-side** by rolling score (the backend
   returns members in an unspecified order) -- purely a display concern, not
   a data change.

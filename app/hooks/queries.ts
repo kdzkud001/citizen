@@ -6,6 +6,7 @@ export const queryKeys = {
   me: ["me"] as const,
   score: ["score"] as const,
   workouts: (days?: number) => ["workouts", days] as const,
+  wheel: ["wheel"] as const,
   habits: (forDate?: string) => ["habits", forDate] as const,
   lyftaStatus: ["lyfta-status"] as const,
   clan: ["clan"] as const,
@@ -21,6 +22,10 @@ export function useScore() {
 
 export function useWorkouts(days?: number) {
   return useQuery({ queryKey: queryKeys.workouts(days), queryFn: () => api.getWorkouts(days) });
+}
+
+export function useWheel() {
+  return useQuery({ queryKey: queryKeys.wheel, queryFn: () => api.getWheel() });
 }
 
 export function useHabits(forDate?: string) {

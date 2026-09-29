@@ -35,7 +35,11 @@ function LyftaSection() {
   const [apiKey, setApiKey] = useState("");
   const [error, setError] = useState<string | null>(null);
 
-  const invalidateStatus = () => queryClient.invalidateQueries({ queryKey: queryKeys.lyftaStatus });
+  // Lyfta connection state and synced sessions both feed the wheel's Fitness spoke.
+  const invalidateStatus = () => {
+    queryClient.invalidateQueries({ queryKey: queryKeys.lyftaStatus });
+    queryClient.invalidateQueries({ queryKey: queryKeys.wheel });
+  };
 
   const connect = useMutation({
     mutationFn: () => api.connectLyfta({ api_key: apiKey.trim() }),

@@ -1,11 +1,13 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { router } from "expo-router";
 import { useState } from "react";
 import { ActivityIndicator, RefreshControl, ScrollView, StyleSheet, Text, View } from "react-native";
 
 import { ClassBadge } from "@/components/ClassBadge";
 import { DailyPointsChart } from "@/components/DailyPointsChart";
+import { WellnessWheel } from "@/components/WellnessWheel";
 import { CLASS_THRESHOLDS } from "@/constants/classes";
-import { queryKeys, useScore } from "@/hooks/queries";
+import { queryKeys, useScore, useWheel } from "@/hooks/queries";
 import { useThemeColors } from "@/hooks/useThemeColors";
 import { api } from "@/lib/api";
 import { classProgressFraction, pointsToNextClassLabel } from "@/lib/format";
@@ -14,6 +16,7 @@ export default function HomeScreen() {
   const colors = useThemeColors();
   const queryClient = useQueryClient();
   const score = useScore();
+  const wheel = useWheel();
   const [refreshing, setRefreshing] = useState(false);
 
   const sync = useMutation({ mutationFn: api.syncLyfta });
@@ -27,6 +30,7 @@ export default function HomeScreen() {
       await Promise.all([
         queryClient.invalidateQueries({ queryKey: queryKeys.score }),
         queryClient.invalidateQueries({ queryKey: queryKeys.workouts() }),
+        queryClient.invalidateQueries({ queryKey: queryKeys.wheel }),
       ]);
     } finally {
       setRefreshing(false);
@@ -88,6 +92,20 @@ export default function HomeScreen() {
         <Text style={{ color: colors.textMuted }}>
           {Math.round(today.workout_points)} workout · {Math.round(today.habit_points)} habits
         </Text>
+      </View>
+
+      <View style={[styles.card, { backgroundColor: colors.card, borderColor: colors.border }]}>
+        <Text style={[styles.cardTitle, { color: colors.text }]}>Wellness wheel</Text>
+        {wheel.isLoading && <ActivityIndicator style={{ marginVertical: 24 }} />}
+        {wheel.isError && (
+          <Text style={{ color: colors.danger }}>Couldn&apos;t load the wheel. Pull down to retry.</Text>
+        )}
+        {wheel.data && (
+          <WellnessWheel
+            wheel={wheel.data}
+            onSelectCategory={(category) => router.navigate({ pathname: "/habits", params: { category } })}
+          />
+        )}
       </View>
 
       <View style={[styles.card, { backgroundColor: colors.card, borderColor: colors.border }]}>
