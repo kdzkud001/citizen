@@ -17,6 +17,13 @@ Users earn points from Lyfta workouts and self-tracked habits; a rolling
   running migrations/tests/sync jobs, assumptions). Depends on
   `citizenship_score` as an editable install (`pip install -e ../` — see that
   README for why it's not a normal pyproject dependency entry on Windows).
+- **`app/`** — Phase 2, the Expo (React Native + TypeScript) mobile app.
+  Own `package.json`/node_modules. Own README (`app/README.md` — env vars,
+  running the backend on your LAN for Expo Go, the manual test checklist,
+  assumptions). Talks to the backend only, never Supabase directly except
+  for auth. Nested `app/AGENTS.md` (Expo-authored) has Expo-specific
+  conventions — read it before touching anything Expo/EAS/React-Native
+  API-shaped, its warning about Expo's frequent breaking changes is real.
 
 ## Conventions
 
@@ -58,5 +65,10 @@ cd citizenship-app/backend
 .venv\Scripts\Activate.ps1
 docker compose up -d   # test Postgres
 pytest
-uvicorn app.main:app --reload
+uvicorn app.main:app --host 0.0.0.0 --reload   # 0.0.0.0 so Expo Go on your phone can reach it
+
+# Phase 2
+cd citizenship-app/app
+npm start
+npx tsc --noEmit && npx expo lint && npx jest   # before calling any change done
 ```
