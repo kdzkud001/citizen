@@ -36,3 +36,25 @@ class SessionBreakdown(BaseModel):
 class DailyWorkoutsOut(BaseModel):
     date: date
     sessions: list[SessionBreakdown]
+
+
+class WheelSpokeOut(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    category: str
+    percent: float
+    completions: int
+    target: float
+    tracking: bool
+
+
+class WheelWindowOut(BaseModel):
+    start: date
+    end: date
+    spokes: list[WheelSpokeOut]
+
+
+class WheelOut(BaseModel):
+    days: int
+    current: WheelWindowOut
+    previous: WheelWindowOut

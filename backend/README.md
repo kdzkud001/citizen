@@ -120,9 +120,16 @@ parameter) rather than a separate mocking library.
 - `GET /me/score` — today's points, rolling score, class, points to next
   class, and the last 28 days of daily scores
 - `GET /me/workouts` — recent scored sessions with their per-set breakdown
-- `POST /habits`, `PATCH /habits/{id}`
-- `GET /habits?for_date=YYYY-MM-DD` — each habit plus `completed_on_date`
-  for that date (today or yesterday only, defaults to today)
+- `GET /me/wheel?days=28` — wellness wheel: per category (`Mind`, `Spirit`,
+  `Discipline`, `Body`, `Fitness`) `percent` (0–100), `completions`,
+  `target`, `tracking`, for the current `days`-long window ending today and
+  the same-length window before it (`days` 1–365)
+- `POST /habits`, `PATCH /habits/{id}` — `name`, `category` (one of the
+  engine's `HABIT_CATEGORIES`, default `Discipline`), `weekly_target`
+  (1–7, default 7), and `active` (PATCH only; `false` archives)
+- `GET /habits?for_date=YYYY-MM-DD` — each habit (with category and
+  weekly target) plus `completed_on_date` for that date (today or yesterday
+  only, defaults to today)
 - `POST /habits/{id}/completions`, `DELETE /habits/{id}/completions/{date}`
   (only today or yesterday — no backfill)
 - `POST /clans`, `POST /clans/join`, `POST /clans/leave`,
@@ -175,5 +182,19 @@ parameter) rather than a separate mocking library.
 - **`GET /me/workouts` recomputes the per-session breakdown on demand**
   (not cached in `daily_scores`, which only stores the rolled-up numbers) —
   fine at personal scale, would need caching if workout history grows large.
+- **`GET /me/wheel` is computed live from raw data too**, not cached. The
+  wheel uses the *currently* active habits for both windows, so archiving a
+  habit also drops it from the previous window's comparison.
+- **`daily_scores.habit_points` includes the balance and weekly bonuses**
+  (no separate columns): the cache stores per-day totals, and the breakdown
+  is always recomputable from `habit_logs` + `habits`.
+- **Changing a habit's `category` or `weekly_target` recomputes the user's
+  scores**, since the balance bonus and weekly bonus both depend on them.
+  That applies to past weeks too: the cache is always derived from the
+  habits' current settings.
+- **A habit's `category` is checked by the API against the engine's
+  `HABIT_CATEGORIES`, not by a DB CHECK constraint**, so adding a category
+  is a config change with no migration. `weekly_target`'s 1–7 range is
+  fixed, so the DB enforces it.
 - **Sync's Lyfta key validation** makes one live call scoped to today's date
   range, to keep it cheap while still proving the key is accepted.

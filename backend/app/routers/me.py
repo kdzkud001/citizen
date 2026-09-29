@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from datetime import timedelta
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, Query
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
@@ -16,8 +16,16 @@ from app.models.daily_score import DailyScore
 from app.models.profile import Profile
 from app.models.workout import WorkoutRecord
 from app.schemas.me import ProfileOut, ProfileUpdate
-from app.schemas.score import DailyScoreOut, DailyWorkoutsOut, ScoreSummary, SessionBreakdown
-from app.services.scoring import points_to_next_class, recompute_user_scores, today_utc
+from app.schemas.score import (
+    DailyScoreOut,
+    DailyWorkoutsOut,
+    ScoreSummary,
+    SessionBreakdown,
+    WheelOut,
+    WheelSpokeOut,
+    WheelWindowOut,
+)
+from app.services.scoring import compute_wheel, points_to_next_class, recompute_user_scores, today_utc
 
 router = APIRouter(prefix="/me", tags=["me"])
 
@@ -97,3 +105,28 @@ def get_recent_workouts(
         for day, dp in sorted(daily.items(), reverse=True)
         if day >= cutoff
     ]
+
+
+@router.get("/wheel", response_model=WheelOut)
+def get_wheel(
+    days: int = Query(default=DEFAULT_CONFIG.wheel_window_days, ge=1, le=365),
+    profile: Profile = Depends(get_current_profile),
+    db: Session = Depends(get_db),
+) -> WheelOut:
+    """Wellness wheel for the last `days` days (ending today, UTC) and the
+    same-length window immediately before it."""
+    today = today_utc()
+    current, previous = compute_wheel(db, profile.id, days, as_of=today)
+
+    def window(end, spokes) -> WheelWindowOut:
+        return WheelWindowOut(
+            start=end - timedelta(days=days - 1),
+            end=end,
+            spokes=[WheelSpokeOut.model_validate(s) for s in spokes],
+        )
+
+    return WheelOut(
+        days=days,
+        current=window(today, current),
+        previous=window(today - timedelta(days=days), previous),
+    )
