@@ -19,13 +19,14 @@ from pathlib import Path
 
 from citizenship_score.config import DEFAULT_CONFIG, ScoringConfig
 from citizenship_score.lyfta_client import LyftaApiError, LyftaAuthError, LyftaClient
-from citizenship_score.models import HabitCompletion, Workout
+from citizenship_score.models import HabitCompletion, HabitDefinition, Workout
 from citizenship_score.scoring.classes import classes_with_hysteresis, rolling_scores
 from citizenship_score.scoring.habits import score_habit_completions
 from citizenship_score.scoring.workouts import (
     apply_weekly_consistency,
     daily_workout_points,
     distinct_set_type_ids,
+    scored_session_dates,
 )
 
 RAW_DATA_DIR = Path("data/raw")
@@ -69,19 +70,23 @@ def _config_with_excludes(exclude_set_types: str | None) -> ScoringConfig:
     return ScoringConfig(excluded_set_type_ids=ids)
 
 
-def _load_habits(path: str | None) -> list[HabitCompletion]:
+def _load_habits(path: str | None) -> tuple[list[HabitDefinition], list[HabitCompletion]]:
+    """Reads {"habits": [HabitDefinition...], "completions": [HabitCompletion...]}."""
     if not path:
-        return []
+        return [], []
     raw = json.loads(Path(path).read_text())
-    return [HabitCompletion.model_validate(item) for item in raw]
+    habits = [HabitDefinition.model_validate(item) for item in raw.get("habits", [])]
+    completions = [HabitCompletion.model_validate(item) for item in raw.get("completions", [])]
+    return habits, completions
 
 
 def _print_breakdown_and_scores(
     workouts: list[Workout],
-    habit_completions: list[HabitCompletion],
+    habits: tuple[list[HabitDefinition], list[HabitCompletion]],
     config: ScoringConfig,
     as_of: date | None,
 ) -> None:
+    habit_definitions, habit_completions = habits
     print(f"\nDistinct set_type_ids found: {sorted(distinct_set_type_ids(workouts))}")
     if not config.excluded_set_type_ids:
         print(
@@ -91,7 +96,9 @@ def _print_breakdown_and_scores(
 
     daily = daily_workout_points(workouts, config)
     final_workout_points = apply_weekly_consistency(daily, config)
-    habit_points = score_habit_completions(habit_completions, config)
+    habit_points = score_habit_completions(
+        habit_completions, habit_definitions, scored_session_dates(workouts, config), config, as_of=as_of
+    )
 
     print("\n=== Per-session breakdown ===")
     for day in sorted(daily.keys()):
@@ -211,28 +218,59 @@ def cmd_score(args: argparse.Namespace) -> int:
     return 0
 
 
-def _simulate_series(
-    scenario: str, days: int, config: ScoringConfig
-) -> dict[date, float]:
-    start = date(2026, 1, 1)  # fixed epoch so output is reproducible
-    session_days = {0, 2, 4}  # Mon/Wed/Fri
-    session_points = 120.0  # tuned to comfortably cross class bands within a rolling window
+SIM_START = date(2026, 1, 5)  # a Monday; fixed so output is reproducible
+SIM_SESSION_WEEKDAYS = {0, 2, 4}  # Mon/Wed/Fri
+# Median session + progress-bonus points across the 82 scored sessions in a
+# real Lyfta account's history (Sep 2026). Hardcoded so simulate doesn't
+# depend on a gitignored data file.
+SIM_GYM_SESSION_POINTS = 161.1
+SIM_HABITS = [  # 6 daily habits across 4 categories: exactly hits the 90/day cap
+    ("read", "Mind"),
+    ("bible", "Spirit"),
+    ("make-bed", "Discipline"),
+    ("no-phone-am", "Discipline"),
+    ("eat-well", "Body"),
+    ("sleep-8h", "Body"),
+]
+SIM_MANY_HABITS = SIM_HABITS + [  # 10 habits, to show the weekly bonus cap holding
+    ("journal", "Mind"),
+    ("pray", "Spirit"),
+    ("tidy", "Discipline"),
+    ("water", "Body"),
+]
+SIMULATE_SCENARIOS = ["consistent", "quits", "habits-only", "gym-only", "habits-and-gym", "many-habits"]
 
-    active_days = days if scenario == "consistent" else 21  # "quits": active for 3 weeks only
 
-    daily: dict[date, float] = {}
-    for i in range(days):
-        day = start + timedelta(days=i)
-        if i < active_days and day.weekday() in session_days:
-            daily[day] = session_points
-        else:
-            daily[day] = 0.0
+def _simulate_series(scenario: str, days: int, config: ScoringConfig) -> dict[date, float]:
+    all_days = [SIM_START + timedelta(days=i) for i in range(days)]
+
+    if scenario in ("consistent", "quits"):
+        # Hysteresis check: flat 120 pts Mon/Wed/Fri; "quits" stops after 3 weeks.
+        active_days = days if scenario == "consistent" else 21
+        return {
+            d: 120.0 if i < active_days and d.weekday() in SIM_SESSION_WEEKDAYS else 0.0
+            for i, d in enumerate(all_days)
+        }
+
+    daily = {d: 0.0 for d in all_days}
+    gym = scenario in ("gym-only", "habits-and-gym")
+    gym_days = [d for d in all_days if gym and d.weekday() in SIM_SESSION_WEEKDAYS]
+    for d in gym_days:
+        # 3 sessions/week meets the default weekly target, so the multiplier applies.
+        daily[d] += SIM_GYM_SESSION_POINTS * config.weekly_consistency_multiplier
+
+    if scenario in ("habits-only", "habits-and-gym", "many-habits"):
+        habit_list = SIM_MANY_HABITS if scenario == "many-habits" else SIM_HABITS
+        habits = [HabitDefinition(habit_id=h, category=c, weekly_target=7) for h, c in habit_list]
+        completions = [HabitCompletion(habit_id=h, completed_on=d) for d in all_days for h, _ in habit_list]
+        for d, pts in score_habit_completions(completions, habits, gym_days, config, as_of=all_days[-1]).items():
+            daily[d] += pts
     return daily
 
 
 def cmd_simulate(args: argparse.Namespace) -> int:
     config = DEFAULT_CONFIG
-    scenarios = ["consistent", "quits"] if args.scenario == "both" else [args.scenario]
+    scenarios = SIMULATE_SCENARIOS if args.scenario == "all" else [args.scenario]
 
     for scenario in scenarios:
         print(f"\n=== Scenario: {scenario} ({args.days} simulated days) ===")
@@ -268,7 +306,9 @@ def build_parser() -> argparse.ArgumentParser:
 
     p_score = subparsers.add_parser("score", help="Score previously saved raw workout JSON")
     p_score.add_argument("--in", dest="input", default=None, help="Path to a saved raw JSON file")
-    p_score.add_argument("--habits", default=None, help="Path to a JSON file of habit completions")
+    p_score.add_argument(
+        "--habits", default=None, help='Path to a JSON file: {"habits": [...], "completions": [...]}'
+    )
     p_score.add_argument("--exclude-set-types", default=None, help="Comma-separated warm-up set_type_ids")
     p_score.add_argument("--as-of", type=_parse_date, default=None)
     p_score.set_defaults(func=cmd_score)
@@ -282,9 +322,7 @@ def build_parser() -> argparse.ArgumentParser:
     p_simulate = subparsers.add_parser(
         "simulate", help="Generate synthetic daily histories to sanity-check hysteresis"
     )
-    p_simulate.add_argument(
-        "--scenario", choices=["consistent", "quits", "both"], default="both"
-    )
+    p_simulate.add_argument("--scenario", choices=[*SIMULATE_SCENARIOS, "all"], default="all")
     p_simulate.add_argument("--days", type=int, default=120)
     p_simulate.set_defaults(func=cmd_simulate)
 

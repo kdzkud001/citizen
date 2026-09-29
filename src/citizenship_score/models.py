@@ -149,11 +149,18 @@ class Workout(BaseModel):
         return value
 
 
+class HabitDefinition(BaseModel):
+    """A user-defined habit: which category it counts toward and how many
+    days a week the user aims to do it."""
+
+    habit_id: str
+    category: str
+    weekly_target: int = Field(default=7, ge=1, le=7)
+    active: bool = True
+
+
 class HabitCompletion(BaseModel):
-    """
-    A single completed habit on a given day. There's no habit storage in
-    Phase 0 -- this is just the shape the scoring function consumes.
-    """
+    """A single completed habit on a given day."""
 
     habit_id: str
     completed_on: date

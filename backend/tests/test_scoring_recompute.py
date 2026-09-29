@@ -41,7 +41,7 @@ def test_build_score_history_matches_phase0_pipeline_on_activity_day():
     """The DB-facing wrapper must not silently diverge from what the raw
     citizenship_score pipeline itself computes for that day."""
     as_of = date(2026, 1, 10)
-    rows = build_score_history([RAW_WORKOUT], [], DEFAULT_CONFIG, as_of=as_of)
+    rows = build_score_history([RAW_WORKOUT], [], [], DEFAULT_CONFIG, as_of=as_of)
     row = next(r for r in rows if r["date"] == as_of)
 
     expected = score_workout_history([Workout.model_validate(RAW_WORKOUT)], DEFAULT_CONFIG)[as_of]
@@ -56,7 +56,7 @@ def test_decay_through_today_with_no_new_activity():
     activity_day = date(2026, 1, 10)
     far_future = activity_day + timedelta(days=DEFAULT_CONFIG.rolling_window_days + 5)
 
-    rows = build_score_history([RAW_WORKOUT], [], DEFAULT_CONFIG, as_of=far_future)
+    rows = build_score_history([RAW_WORKOUT], [], [], DEFAULT_CONFIG, as_of=far_future)
     today_row = next(r for r in rows if r["date"] == far_future)
 
     assert today_row["rolling_score"] == 0.0  # the one workout has fallen out of the window

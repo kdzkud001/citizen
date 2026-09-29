@@ -37,7 +37,9 @@ def create_habit(
     profile: Profile = Depends(get_current_profile),
     db: Session = Depends(get_db),
 ) -> Habit:
-    habit = Habit(user_id=profile.id, name=body.name)
+    habit = Habit(
+        user_id=profile.id, name=body.name, category=body.category, weekly_target=body.weekly_target
+    )
     db.add(habit)
     db.commit()
     db.refresh(habit)
@@ -67,7 +69,12 @@ def list_habits(
     )
     return [
         HabitWithCompletionOut(
-            id=h.id, name=h.name, active=h.active, completed_on_date=h.id in completed_ids
+            id=h.id,
+            name=h.name,
+            category=h.category,
+            weekly_target=h.weekly_target,
+            active=h.active,
+            completed_on_date=h.id in completed_ids,
         )
         for h in habits
     ]
@@ -85,8 +92,18 @@ def update_habit(
         habit.name = body.name
     if body.active is not None:
         habit.active = body.active
+    scoring_changed = (body.category is not None and body.category != habit.category) or (
+        body.weekly_target is not None and body.weekly_target != habit.weekly_target
+    )
+    if body.category is not None:
+        habit.category = body.category
+    if body.weekly_target is not None:
+        habit.weekly_target = body.weekly_target
     db.commit()
     db.refresh(habit)
+    if scoring_changed:
+        # Category feeds the balance bonus and weekly_target the weekly bonus.
+        recompute_user_scores(db, profile.id)
     return habit
 
 

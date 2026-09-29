@@ -86,6 +86,19 @@ def is_scoreable_set(exercise: Exercise, set_: Set, config: ScoringConfig = DEFA
     return True
 
 
+def scored_session_dates(
+    workouts: Sequence[Workout], config: ScoringConfig = DEFAULT_CONFIG
+) -> list[date]:
+    """One date per workout with at least one scoreable set -- a "scored
+    Lyfta workout", which counts as Fitness for the balance bonus and the
+    wellness wheel. Repeats a date for multiple sessions on one day."""
+    return [
+        w.workout_perform_date
+        for w in workouts
+        if any(is_scoreable_set(ex, s, config) for ex in w.exercises for s in ex.sets)
+    ]
+
+
 def distinct_set_type_ids(workouts: Sequence[Workout]) -> set[str]:
     """All distinct set_type_ids seen across a batch of workouts, so the
     caller can figure out which one(s) mean "warm-up" and add them to

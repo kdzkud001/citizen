@@ -44,9 +44,10 @@ citizenship-score score [--in path/to/file.json] [--habits path/to/habits.json]
 # Fetch from the sandbox endpoint (no auth) and run the full pipeline on it
 citizenship-score sandbox [--habits ...] [--exclude-set-types ...] [--as-of ...]
 
-# Generate synthetic daily histories and print class transitions, to
-# sanity-check the promotion/demotion hysteresis
-citizenship-score simulate [--scenario consistent|quits|both] [--days 120]
+# Generate synthetic daily histories and print class transitions: hysteresis
+# checks (consistent, quits) and pillar balance (habits-only, gym-only,
+# habits-and-gym, many-habits). Default runs all of them.
+citizenship-score simulate [--scenario <name>|all] [--days 120]
 ```
 
 `score` and `sandbox` both print:
@@ -57,9 +58,17 @@ citizenship-score simulate [--scenario consistent|quits|both] [--days 120]
 - weekly totals, including whether the consistency multiplier applied
 - the rolling score and class as of the latest day in the data (or `--as-of`)
 
-`--habits` optionally takes a JSON file of `[{"habit_id": "...", "completed_on": "YYYY-MM-DD"}, ...]`
-to fold habit points into the same daily total. There's no habit storage in this phase — this is
-just a convenience for exercising `scoring/habits.py` end-to-end.
+`--habits` optionally takes a JSON file to fold habit points into the same daily total:
+
+```json
+{
+  "habits": [{"habit_id": "read", "category": "Mind", "weekly_target": 7}],
+  "completions": [{"habit_id": "read", "completed_on": "YYYY-MM-DD"}]
+}
+```
+
+Habit storage lives in the backend. This file is just a convenience for exercising
+`scoring/habits.py` end-to-end.
 
 Raw fetched JSON is always saved under `data/raw/` (gitignored) before scoring, so historical
 data can be rescored later without refetching, once the formulas change.
@@ -89,7 +98,25 @@ per session.
 **Weekly consistency**: if a user hits their weekly session target (default 3) in a Monday–Sunday
 week, that week's workout points (sessions + bonuses) are multiplied by 1.2x.
 
-**Habits**: 10 points per completed habit, capped at 50/day.
+**Habits** are a full pillar alongside workouts, not a side bonus. Each habit has a category
+(`Mind`, `Spirit`, `Discipline`, `Body`, `Fitness`, from `config.HABIT_CATEGORIES`) and a
+`weekly_target` (1-7 days, default 7).
+- **Per completion**: 15 points, capped at 90/day. A habit only counts once per day.
+- **Balance bonus**: +15 on any day with completions in 3+ distinct categories. A scored Lyfta
+  workout that day (at least one scoreable set) counts as `Fitness`. This bonus sits outside the
+  90 cap.
+- **Weekly consistency**: +25 per habit whose `weekly_target` is met in a Monday–Sunday week,
+  credited on that week's Sunday, and only once that Sunday has arrived (an in-progress week
+  earns nothing yet). At most 6 habits count per week (150 pts), so adding more trivial habits
+  can't raise the ceiling. Archived habits still count for weeks they were met in.
+
+**Wellness wheel** (`scoring/wheel.py`): over a window of N days (default 28), per category:
+`percent` (0–100, capped), `completions`, `target`, and `tracking`.
+- Habit categories: completions of *currently active* habits ÷ (sum of their `weekly_target` × N/7).
+- Fitness: (scored Lyfta sessions + Fitness habit completions) ÷ (the user's weekly session target
+  × N/7, included only if Lyfta is connected, + Fitness habits' targets × N/7).
+- `tracking=false` when a category has no active habits, and for Fitness only if there's also
+  no Lyfta connection. Non-tracking spokes report 0%.
 
 **Rolling score**: sum of (workout points + habit points) over the trailing 28 days, computed for
 every calendar day (not just days with recorded activity — rest days still matter, since old
@@ -128,11 +155,18 @@ against the real sandbox/live API and had to be resolved to get a working pipeli
   time a fresh 7-consecutive-day violation completes, rather than falling straight to Outsider in
   one move. This reads as more in the spirit of "hysteresis" (gradual, resistant to whiplash) but
   is a judgment call, flagged before implementation and not corrected, so implemented as stated.
-- **`simulate`'s two scenarios** ("consistent" and "quits after 3 weeks") are a synthetic 3x/week
-  (Mon/Wed/Fri) session generator with a fixed points-per-session value, starting from a fixed
-  epoch date for reproducible output. No specific parameters were given for these, so the values
-  were chosen to comfortably demonstrate promotion and (in the "quits" case) delayed demotion
-  within a ~90-120 day window.
+- **`simulate`'s hysteresis scenarios** ("consistent" and "quits after 3 weeks") are a synthetic
+  3x/week (Mon/Wed/Fri) session generator with a flat 120 points per session, starting from a fixed
+  epoch (a Monday) for reproducible output, chosen to demonstrate promotion and (in the "quits"
+  case) delayed demotion within a ~90-120 day window.
+- **`simulate`'s pillar-balance scenarios** use: habits-only = 6 daily habits across 4 categories
+  (exactly the 90/day cap); gym-only = 3 sessions/week at 161.1 points (the median session +
+  progress bonus across the 82 scored sessions in a real account, hardcoded so simulate doesn't
+  depend on gitignored data), with the weekly multiplier applied since 3/week meets the default
+  target; habits-and-gym = both, where gym days count as Fitness for the balance bonus;
+  many-habits = 10 daily habits, to show the weekly bonus cap holding. Steady-state results
+  (rolling 28-day score): habits-only 3,540 (Elite), gym-only 2,320 (Noble), habits-and-gym 5,860
+  (Elite), many-habits 3,540 (Elite, identical to 6 habits, so the cap holds).
 - **Real-data surprises found via testing against the live/sandbox API** (not guesses — actually
   observed in responses):
   - Numeric-looking set fields (`duration`, `distance`, `rir`) sometimes arrive as the literal

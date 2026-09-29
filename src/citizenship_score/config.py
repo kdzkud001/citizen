@@ -90,8 +90,29 @@ WEEKLY_CONSISTENCY_MULTIPLIER = 1.2
 # Habits
 # --------------------------------------------------------------------------
 
-HABIT_POINTS_PER_COMPLETION = 10.0
-HABIT_DAILY_POINTS_CAP = 50.0
+# A scored Lyfta workout counts as "Fitness" for the balance bonus and the
+# wellness wheel. Adding a category here needs no DB migration -- the
+# backend validates against this list rather than a DB CHECK constraint.
+HABIT_CATEGORIES: tuple[str, ...] = ("Mind", "Spirit", "Discipline", "Body", "Fitness")
+FITNESS_CATEGORY = "Fitness"
+DEFAULT_HABIT_CATEGORY = "Discipline"
+DEFAULT_HABIT_WEEKLY_TARGET = 7
+
+HABIT_POINTS_PER_COMPLETION = 15.0
+HABIT_DAILY_POINTS_CAP = 90.0  # caps per-completion points only, not the bonuses below
+
+# +N on any day with completed habits in >= M distinct categories.
+BALANCE_BONUS_POINTS = 15.0
+BALANCE_BONUS_MIN_CATEGORIES = 3
+
+# +N per habit whose weekly_target is met in a Monday-Sunday week, credited
+# on that week's Sunday. At most MAX_HABITS habits count per week, so a
+# pile of trivial habits can't raise the ceiling without bound.
+HABIT_WEEKLY_CONSISTENCY_POINTS = 25.0
+HABIT_WEEKLY_CONSISTENCY_MAX_HABITS = 6
+
+# Wellness wheel window length.
+WHEEL_WINDOW_DAYS = 28
 
 
 # --------------------------------------------------------------------------
@@ -144,8 +165,15 @@ class ScoringConfig:
     progress_bonus_lookback_days: int = PROGRESS_BONUS_LOOKBACK_DAYS
     weekly_session_target: int = DEFAULT_WEEKLY_SESSION_TARGET
     weekly_consistency_multiplier: float = WEEKLY_CONSISTENCY_MULTIPLIER
+    habit_categories: tuple[str, ...] = HABIT_CATEGORIES
+    fitness_category: str = FITNESS_CATEGORY
     habit_points_per_completion: float = HABIT_POINTS_PER_COMPLETION
     habit_daily_points_cap: float = HABIT_DAILY_POINTS_CAP
+    balance_bonus_points: float = BALANCE_BONUS_POINTS
+    balance_bonus_min_categories: int = BALANCE_BONUS_MIN_CATEGORIES
+    habit_weekly_consistency_points: float = HABIT_WEEKLY_CONSISTENCY_POINTS
+    habit_weekly_consistency_max_habits: int = HABIT_WEEKLY_CONSISTENCY_MAX_HABITS
+    wheel_window_days: int = WHEEL_WINDOW_DAYS
     rolling_window_days: int = ROLLING_WINDOW_DAYS
     class_thresholds: tuple[tuple[str, float], ...] = CLASS_THRESHOLDS
     demotion_threshold_fraction: float = DEMOTION_THRESHOLD_FRACTION

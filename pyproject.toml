@@ -23,3 +23,7 @@ citizenship-score = "citizenship_score.cli:main"
 
 [tool.setuptools.packages.find]
 where = ["src"]
+
+[tool.pytest.ini_options]
+# backend/ has its own venv and test suite; keep root pytest to Phase 0.
+testpaths = ["tests"]
